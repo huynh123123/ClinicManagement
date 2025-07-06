@@ -1,160 +1,284 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
   ScrollView,
-  FlatList
+  TouchableOpacity,
+  Image,
+  StyleSheet,
+  Dimensions,
+  TextInput,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import api from '../../services/api';
+import CustomDrawer from './CustomDrawer';
 
-export default function HomeScreen() {
+// Dữ liệu mẫu thay thế API
+const sampleSpecialties = [
+  { SpecialtyID: 1, Name: 'Nội khoa', Description: 'Khám và điều trị bệnh nội khoa' },
+  { SpecialtyID: 2, Name: 'Ngoại khoa', Description: 'Phẫu thuật và điều trị ngoại khoa' },
+  { SpecialtyID: 3, Name: 'Nhi khoa', Description: 'Chuyên về trẻ em' },
+  { SpecialtyID: 4, Name: 'Tai Mũi Họng', Description: 'Khám các bệnh về tai mũi họng' },
+  { SpecialtyID: 5, Name: 'Da liễu', Description: 'Chuyên về da và thẩm mỹ' },
+];
+
+const sampleDoctors = [
+  { UserID: 1, FullName: 'BS. Nguyễn Văn A', SpecialtyName: 'Nội khoa' },
+  { UserID: 2, FullName: 'BS. Trần Thị B', SpecialtyName: 'Ngoại khoa' },
+  { UserID: 3, FullName: 'BS. Lê Văn C', SpecialtyName: 'Nhi khoa' },
+  { UserID: 4, FullName: 'BS. Phạm Thị D', SpecialtyName: 'Tai Mũi Họng' },
+  { UserID: 5, FullName: 'BS. Hoàng Văn E', SpecialtyName: 'Da liễu' },
+];
+
+const screenWidth = Dimensions.get('window').width;
+const itemsPerPage = 3;
+
+const chunkArray = (arr, chunkSize) => {
+  const result = [];
+  for (let i = 0; i < arr.length; i += chunkSize) {
+    result.push(arr.slice(i, i + chunkSize));
+  }
+  return result;
+};
+
+const HomeScreen = () => {
+  const [specialties] = useState(sampleSpecialties);
+  const [doctors] = useState(sampleDoctors);
+  const [page, setPage] = useState(0);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [drawerVisible, setDrawerVisible] = useState(false);
+
   const navigation = useNavigation();
-  const [departments, setDepartments] = useState([]);
-  const [doctors, setDoctors] = useState([]);
 
-  useEffect(() => {
-    // Gọi API lấy danh sách khoa
-    api.get('/departments')
-      .then(res => setDepartments(res.data))
-      .catch(err => console.error('Lỗi load departments:', err));
+  const chunkedSpecialties = chunkArray(specialties, itemsPerPage);
+  const displayedSpecialties = chunkedSpecialties[page] || [];
 
-    // Gọi API lấy bác sĩ trong 1 khoa mặc định (ví dụ khoa ID 1)
-    api.get('/doctors/by-department/1')
-      .then(res => setDoctors(res.data))
-      .catch(err => console.error('Lỗi load doctors:', err));
-  }, []);
+  const nextPage = () => {
+    if (page < chunkedSpecialties.length - 1) setPage(page + 1);
+  };
+
+  const prevPage = () => {
+    if (page > 0) setPage(page - 1);
+  };
+
+  const navigateTo = (screen) => {
+    setDrawerVisible(false);
+    navigation.navigate(screen);
+  };
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.logo}>PolyCare</Text>
+    <View style={{ flex: 1 }}>
+      <ScrollView style={styles.container}>
+        {/* Header */}
+        <View style={styles.headerRow}>
+          <TouchableOpacity onPress={() => setDrawerVisible(true)}>
+            <Text style={{ fontSize: 24 }}>☰</Text>
+          </TouchableOpacity>
+          <Text style={styles.logo}>🏥 PolyCare</Text>
+          <TouchableOpacity onPress={() => console.log('Thông báo')}>
+          </TouchableOpacity>
+        </View>
 
-      <TextInput
-        style={styles.search}
-        placeholder="Tìm kiếm chuyên ngành"
-        placeholderTextColor="#888"
-      />
+        {/* Button Lịch hẹn */}
+        <TouchableOpacity 
+          style={styles.appointmentButton}
+          onPress={() => navigateTo('AppointmentList')}
+        >
+          <Text style={styles.appointmentText}>LỊCH HẸN</Text>
+        </TouchableOpacity>
 
-      <View style={styles.buttonRow}>
-        <FeatureButton label="Khám chuyên khoa" onPress={() => navigation.navigate('Departments')} />
-        <FeatureButton label="Hồ sơ cá nhân" onPress={() => navigation.navigate('ProfileForm')} />
-        <FeatureButton label="Khám theo bác sĩ" onPress={() => navigation.navigate('DoctorsByDept')} />
-      </View>
+        {/* Thanh tìm kiếm */}
+        <TextInput
+          placeholder="🔍 Tìm chuyên khoa, bác sĩ..."
+          value={searchTerm}
+          onChangeText={setSearchTerm}
+          onSubmitEditing={() => {
+            if (searchTerm.trim() !== '') {
+              navigation.navigate('SearchScreen', { keyword: searchTerm });
+            }
+          }}
+          style={styles.searchInput}
+        />
 
-      <TouchableOpacity
-        style={styles.scheduleButton}
-        onPress={() => navigation.navigate('Appointments')}>
-        <Text style={styles.scheduleText}>LỊCH HẸN</Text>
-      </TouchableOpacity>
-
-      <Section title="Chuyên khoa phổ biến">
-        <FlatList
-          horizontal
-          data={departments}
-          keyExtractor={(item) => item.DepartmentID.toString()}
-          renderItem={({ item }) => (
-            <TouchableOpacity style={styles.card}>
-              <Text style={styles.cardText}>{item.Name}</Text>
+        {/* Chuyên khoa phổ biến */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Chuyên khoa phổ biến</Text>
+          <View style={styles.specialtyRow}>
+            <TouchableOpacity onPress={prevPage} style={styles.arrowBox}>
+              <Text style={styles.arrowText}>◀︎</Text>
             </TouchableOpacity>
-          )}
-          showsHorizontalScrollIndicator={false}
+
+            {displayedSpecialties.map((item) => (
+              <TouchableOpacity 
+                key={item.SpecialtyID} 
+                style={styles.boxGrid}
+                onPress={() => navigation.navigate('SpecialtyDetail', { specialty: item })}
+              >
+                <Text style={styles.specialtyName}>{item.Name}</Text>
+              </TouchableOpacity>
+            ))}
+
+            <TouchableOpacity onPress={nextPage} style={styles.arrowBox}>
+              <Text style={styles.arrowText}>▶︎</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Danh sách bác sĩ */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Bác sĩ nổi bật</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('DoctorList')}>
+              <Text style={styles.seeAll}>Xem tất cả</Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {doctors.map((doctor) => (
+              <TouchableOpacity 
+                key={doctor.UserID} 
+                style={styles.doctorBox}
+                onPress={() => navigation.navigate('DoctorDetail', { doctor })}
+              >
+                <Text style={styles.doctorName}>{doctor.FullName}</Text>
+                <Text style={styles.specialty}>{doctor.SpecialtyName}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      </ScrollView>
+
+      {/* Custom Drawer */}
+      {drawerVisible && (
+        <CustomDrawer
+          onClose={() => setDrawerVisible(false)}
+          navigation={navigation}
         />
-      </Section>
-
-      <Section title="Các bác sĩ đang làm việc tại đây">
-        <FlatList
-          horizontal
-          data={doctors}
-          keyExtractor={(item) => item.UserID.toString()}
-          renderItem={({ item }) => (
-            <View style={styles.doctorCard}>
-              <Text style={styles.doctorName}>{item.FullName}</Text>
-              <Text style={styles.doctorDept}>Khoa ID: {item.DepartmentID}</Text>
-            </View>
-          )}
-          showsHorizontalScrollIndicator={false}
-        />
-      </Section>
-    </ScrollView>
-  );
-}
-
-function FeatureButton({ label, onPress }) {
-  return (
-    <TouchableOpacity style={styles.featureButton} onPress={onPress}>
-      <Text style={styles.featureText}>{label}</Text>
-    </TouchableOpacity>
-  );
-}
-
-function Section({ title, children }) {
-  return (
-    <View style={styles.sectionContainer}>
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>{title}</Text>
-        <TouchableOpacity><Text style={styles.seeMore}>Xem thêm</Text></TouchableOpacity>
-      </View>
-      {children}
+      )}
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: '#fff' },
-  logo: { fontSize: 26, fontWeight: 'bold', marginBottom: 15, color: '#1e90ff' },
-  search: {
-    backgroundColor: '#f0f0f0',
-    padding: 12,
-    borderRadius: 10,
+  container: { 
+    flex: 1,
+    padding: 16,
+    backgroundColor: '#f8f9fa',
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 20,
-    borderColor: '#ccc',
-    borderWidth: 1
   },
-  buttonRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15 },
-  featureButton: {
-    width: '30%',
-    backgroundColor: '#eaf3ff',
-    borderRadius: 10,
-    paddingVertical: 12,
-    alignItems: 'center'
+  logo: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#2D9CDB',
   },
-  featureText: { fontSize: 13, textAlign: 'center', color: '#333' },
-  scheduleButton: {
-    backgroundColor: '#007bff',
-    padding: 14,
+  notificationIcon: {
+    width: 24,
+    height: 24,
+  },
+  appointmentButton: {
+    backgroundColor: '#2D9CDB',
+    padding: 15,
     borderRadius: 10,
     alignItems: 'center',
-    marginBottom: 20
+    marginBottom: 20,
+    elevation: 3,
   },
-  scheduleText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
-  sectionContainer: { marginBottom: 20 },
+  appointmentText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  searchInput: {
+    backgroundColor: 'white',
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+    borderRadius: 10,
+    marginBottom: 20,
+    fontSize: 16,
+    elevation: 2,
+  },
+  section: {
+    marginBottom: 25,
+  },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 10
+    alignItems: 'center',
+    marginBottom: 15,
   },
-  sectionTitle: { fontSize: 16, fontWeight: 'bold' },
-  seeMore: { fontSize: 13, color: '#007bff' },
-  card: {
-    backgroundColor: '#f5f5f5',
-    padding: 14,
-    marginRight: 10,
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  seeAll: {
+    color: '#2D9CDB',
+    fontSize: 14,
+  },
+  specialtyRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  arrowBox: {
+    width: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  arrowText: {
+    fontSize: 24,
+    color: '#2D9CDB',
+  },
+  boxGrid: {
+    backgroundColor: 'white',
+    width: (screenWidth - 120) / 3,
+    height: 120,
     borderRadius: 10,
-    width: 140,
-    alignItems: 'center'
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 10,
+    marginHorizontal: 5,
+    elevation: 2,
   },
-  cardText: { textAlign: 'center' },
-  doctorCard: {
-    backgroundColor: '#e6f0ff',
-    padding: 14,
-    marginRight: 10,
+  icon: {
+    width: 40,
+    height: 40,
+    marginBottom: 10,
+  },
+  specialtyName: {
+    textAlign: 'center',
+    fontSize: 14,
+    color: '#555',
+  },
+  doctorBox: {
+    backgroundColor: 'white',
+    width: 150,
     borderRadius: 10,
-    width: 160,
-    alignItems: 'center'
+    padding: 15,
+    marginRight: 15,
+    alignItems: 'center',
+    elevation: 2,
   },
-  doctorName: { fontWeight: 'bold', fontSize: 14 },
-  doctorDept: { fontSize: 12, color: '#444' }
+  avatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    marginBottom: 10,
+  },
+  doctorName: {
+    fontWeight: 'bold',
+    fontSize: 15,
+    textAlign: 'center',
+    marginBottom: 5,
+  },
+  specialty: {
+    fontSize: 13,
+    color: '#666',
+    textAlign: 'center',
+  },
 });
+
+export default HomeScreen;

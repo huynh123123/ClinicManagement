@@ -1,25 +1,60 @@
-import React from 'react';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createStackNavigator } from '@react-navigation/stack';
+import { createDrawerNavigator } from '@react-navigation/drawer';
 import HomeScreen from '../screens/Patient/HomeScreen';
-import DepartmentListScreen from '../screens/Patient/DepartmentListScreen';
-import DoctorListScreen from '../screens/Patient/DoctorListScreen';
-import AppointmentBookingScreen from '../screens/Patient/AppointmentBookingScreen';
-import AppointmentHistoryScreen from '../screens/Patient/AppointmentHistoryScreen';
-import InvoiceListScreen from '../screens/Patient/InvoiceListScreen';
-import ProfileFormScreen from '../screens/Patient/ProfileFormScreen';
+import MedicalRecords from '../screens/Patient/MedicalRecords';
+import MedicalHistory from '../screens/Patient/MedicalHistory';
+import SpecialtyExamination from '../screens/Patient/SpecialtyExamination';
+import DoctorExamination from '../screens/Patient/DoctorExamination';
+import Booking from '../screens/Patient/Booking';
+import DepartmentDoctorsList from '../screens/Patient/DepartmentDoctorsList';
+import AppointmentList from '../screens/Patient/AppointmentList';
+import InvoiceList from '../screens/Patient/InvoiceList';
+import CustomDrawer from '../screens/Patient/CustomDrawer';
 
-const Stack = createNativeStackNavigator();
+const Stack = createStackNavigator();
+const Drawer = createDrawerNavigator();
 
-export default function AppNavigator() {
+// Tạo Stack Navigator như trước
+const MainStack = () => {
   return (
-    <Stack.Navigator>
-      <Stack.Screen name="Home" component={HomeScreen} />
-      <Stack.Screen name="Departments" component={DepartmentListScreen} options={{ title: 'Danh sách chuyên khoa' }} />
-      <Stack.Screen name="DoctorsByDept" component={DoctorListScreen} options={{ title: 'Danh sách bác sĩ' }} />
-      <Stack.Screen name="BookAppointment" component={AppointmentBookingScreen} />
-      <Stack.Screen name="Appointments" component={AppointmentHistoryScreen} />
-      <Stack.Screen name="Invoices" component={InvoiceListScreen} />
-      <Stack.Screen name="ProfileForm" component={ProfileFormScreen} options={{ title: 'Hồ sơ cá nhân' }} />
+    <Stack.Navigator 
+      initialRouteName="Home"
+      screenOptions={{
+        headerStyle: {
+          backgroundColor: '#2D9CDB',
+        },
+        headerTintColor: '#fff',
+        headerTitleStyle: {
+          fontWeight: 'bold',
+        },
+      }}
+    >
+      <Stack.Screen name="Home" component={HomeScreen} options={{ title: 'PolyCare' }} />
+      <Stack.Screen name="MedicalRecords" component={MedicalRecords} options={{ title: 'Hồ Sơ Bệnh Án' }} />
+      <Stack.Screen name="MedicalHistory" component={MedicalHistory} options={{ title: 'Lịch Sử Khám Bệnh' }} />
+      <Stack.Screen name="SpecialtyExamination" component={SpecialtyExamination} options={{ title: 'Khám Theo Chuyên Khoa' }} />
+      <Stack.Screen name="DoctorExamination" component={DoctorExamination} options={{ title: 'Khám Theo Bác Sĩ' }} />
+      <Stack.Screen name="Booking" component={Booking} options={{ title: 'Đặt Lịch Khám' }} />
+      <Stack.Screen name="DepartmentDoctorsList" component={DepartmentDoctorsList} options={{ title: 'Danh Sách Khoa & Bác Sĩ' }} />
+      <Stack.Screen name="AppointmentList" component={AppointmentList} options={{ title: 'Lịch Đã Hẹn' }} />
+      <Stack.Screen name="InvoiceList" component={InvoiceList} options={{ title: 'Hóa Đơn' }} />
     </Stack.Navigator>
   );
-}
+};
+
+// Tạo Drawer Navigator bao bọc Stack Navigator
+const AppNavigator = () => {
+  return (
+    <Drawer.Navigator
+      drawerContent={(props) => <CustomDrawer {...props} />}
+      screenOptions={{
+        drawerPosition: 'left',
+        headerShown: false, // Ẩn header của Drawer vì Stack đã có header riêng
+      }}
+    >
+      <Drawer.Screen name="MainStack" component={MainStack} />
+    </Drawer.Navigator>
+  );
+};
+
+export default AppNavigator;
