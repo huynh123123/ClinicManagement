@@ -1,161 +1,158 @@
-import React from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
-import { Calendar } from 'react-native-calendars';
+import React, { useEffect, useState, useContext } from 'react';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator } from 'react-native';
+import { getPatientAppointments } from '../../services/appointmentService';
+import { AuthContext } from '../../context/AuthContext';
 
 const AppointmentList = () => {
-  const appointments = [
-    { id: '1', date: '2024-07-15', time: '09:00', doctor: 'BS. Nguyễn Văn C', department: 'Tai Mũi Họng', status: 'pending' },
-    { id: '2', date: '2024-07-10', time: '14:00', doctor: 'BS. Trần Thị D', department: 'Tiêu hóa', status: 'completed' },
-    { id: '3', date: '2024-07-05', time: '10:00', doctor: 'BS. Lê Văn E', department: 'Da liễu', status: 'completed' },
-  ];
+  const [appointments, setAppointments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const { token } = useContext(AuthContext);
 
-  const markedDates = {};
-  appointments.forEach(app => {
-    markedDates[app.date] = { marked: true, dotColor: app.status === 'pending' ? '#2D9CDB' : '#4CAF50' };
-  });
+  useEffect(() => {
+    const fetchAppointments = async () => {
+      try {
+        const response = await getPatientAppointments(token);
+        if (response?.data) {
+          setAppointments(response.data);
+        }
+      } catch (error) {
+        console.error('Lỗi lấy lịch hẹn:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const pendingAppointments = appointments.filter(app => app.status === 'pending');
-  const completedAppointments = appointments.filter(app => app.status === 'completed');
+    fetchAppointments();
+  }, []);
 
-  const renderAppointmentItem = ({ item }) => (
-    <View style={styles.appointmentCard}>
-      <View style={styles.appointmentHeader}>
-        <Text style={styles.appointmentTime}>{item.time}</Text>
-        <Text style={[
-          styles.appointmentStatus,
-          item.status === 'pending' ? styles.pendingStatus : styles.completedStatus
-        ]}>
-          {item.status === 'pending' ? 'Chờ khám' : 'Đã khám'}
-        </Text>
+  const renderItem = ({ item }) => (
+    <View style={styles.card}>
+      <View style={styles.header}>
+        <Text style={styles.time}>{item.time}</Text>
+        <Text style={[styles.status, getStatusStyle(item.status)]}>{item.status}</Text>
       </View>
-      <Text style={styles.appointmentDoctor}>{item.doctor}</Text>
-      <Text style={styles.appointmentDepartment}>{item.department}</Text>
-      {item.status === 'pending' && (
-        <TouchableOpacity style={styles.cancelButton}>
-          <Text style={styles.cancelButtonText}>Hủy lịch</Text>
-        </TouchableOpacity>
-      )}
+      <Text style={styles.doctor}>👨‍⚕️ {item.doctorName}</Text>
+      <Text style={styles.specialty}>🏥 {item.specialty}</Text>
+      <Text style={styles.date}>📅 {new Date(item.date).toLocaleDateString('vi-VN')}</Text>
+      <Text style={styles.reason}>📌 Lý do: {item.reason}</Text>
+      <Text style={styles.bookingFor}>👤 Đặt cho: {item.bookingFor}</Text>
     </View>
   );
 
+  const getStatusStyle = (status) => {
+    switch (status) {
+      case 'Đang chờ':
+        return styles.pending;
+      case 'Đã xác nhận':
+        return styles.confirmed;
+      case 'Hoàn tất':
+        return styles.done;
+      case 'Đã hủy':
+        return styles.cancelled;
+      default:
+        return {};
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color="#1976D2" />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Lịch Đã Hẹn</Text>
-      
-      <Calendar
-        style={styles.calendar}
-        markedDates={markedDates}
-        theme={{
-          selectedDayBackgroundColor: '#2D9CDB',
-          todayTextColor: '#2D9CDB',
-          arrowColor: '#2D9CDB',
-        }}
-      />
-
-      <Text style={styles.sectionTitle}>Lịch sắp tới</Text>
-      {pendingAppointments.length > 0 ? (
-        <FlatList
-          data={pendingAppointments}
-          keyExtractor={(item) => item.id}
-          renderItem={renderAppointmentItem}
-        />
+      {appointments.length === 0 ? (
+        <Text style={styles.noData}>Không có lịch hẹn nào</Text>
       ) : (
-        <Text style={styles.noAppointments}>Không có lịch hẹn sắp tới</Text>
-      )}
-
-      <Text style={styles.sectionTitle}>Lịch đã hoàn thành</Text>
-      {completedAppointments.length > 0 ? (
         <FlatList
-          data={completedAppointments}
-          keyExtractor={(item) => item.id}
-          renderItem={renderAppointmentItem}
+          data={appointments}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={renderItem}
+          contentContainerStyle={{ paddingBottom: 20 }}
         />
-      ) : (
-        <Text style={styles.noAppointments}>Không có lịch đã hoàn thành</Text>
       )}
     </View>
   );
 };
 
+export default AppointmentList;
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
-    padding: 15,
+    padding: 16,
+    backgroundColor: '#F5F5F5',
   },
-  title: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#2D9CDB',
-    marginBottom: 20,
-  },
-  calendar: {
-    borderRadius: 10,
-    overflow: 'hidden',
-    marginBottom: 20,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginTop: 10,
-    marginBottom: 15,
-    color: '#2D9CDB',
-  },
-  noAppointments: {
-    textAlign: 'center',
-    color: '#757575',
-    marginVertical: 20,
-  },
-  appointmentCard: {
+  card: {
     backgroundColor: 'white',
     borderRadius: 10,
     padding: 15,
     marginBottom: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
     elevation: 3,
   },
-  appointmentHeader: {
+  header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 10,
   },
-  appointmentTime: {
+  time: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#2D9CDB',
   },
-  appointmentStatus: {
-    fontWeight: 'bold',
-    paddingHorizontal: 10,
-    paddingVertical: 3,
+  status: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderRadius: 5,
+    fontWeight: 'bold',
+    overflow: 'hidden',
   },
-  pendingStatus: {
+  pending: {
     backgroundColor: '#E3F2FD',
     color: '#1976D2',
   },
-  completedStatus: {
+  confirmed: {
+    backgroundColor: '#FFF3E0',
+    color: '#FB8C00',
+  },
+  done: {
     backgroundColor: '#E8F5E9',
     color: '#388E3C',
   },
-  appointmentDoctor: {
+  cancelled: {
+    backgroundColor: '#FFEBEE',
+    color: '#D32F2F',
+  },
+  doctor: {
     fontSize: 16,
-    marginBottom: 3,
+    fontWeight: '600',
+    marginBottom: 4,
   },
-  appointmentDepartment: {
+  specialty: {
     color: '#757575',
-    marginBottom: 10,
+    marginBottom: 4,
   },
-  cancelButton: {
-    alignSelf: 'flex-end',
+  date: {
+    marginBottom: 4,
   },
-  cancelButtonText: {
-    color: '#FF5252',
-    fontWeight: 'bold',
+  reason: {
+    fontStyle: 'italic',
+    marginBottom: 4,
+  },
+  bookingFor: {
+    color: '#333',
+  },
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  noData: {
+    textAlign: 'center',
+    marginTop: 20,
+    color: '#999',
   },
 });
-
-export default AppointmentList;

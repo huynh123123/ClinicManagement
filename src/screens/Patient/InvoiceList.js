@@ -1,41 +1,77 @@
-import React from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import React, { useState, useContext, useEffect } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { getPatientInvoices } from '../../services/invoiceService';
+import { AuthContext } from '../../context/AuthContext';
 
 const InvoiceList = () => {
-  const invoices = [
-    { id: '1', code: 'HD-2024-001', date: '15/07/2024', amount: '1,500,000 VND', status: 'paid' },
-    { id: '2', code: 'HD-2024-002', date: '10/07/2024', amount: '2,300,000 VND', status: 'paid' },
-    { id: '3', code: 'HD-2024-003', date: '05/07/2024', amount: '3,750,000 VND', status: 'unpaid' },
-  ];
+  const [invoices, setInvoices] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const { user } = useContext(AuthContext);
+
+  useEffect(() => {
+    const fetchInvoices = async () => {
+      try {
+        const result = await getPatientInvoices(user.id);
+        setInvoices(result.data); // Nếu response là { data: [...] }
+      } catch (error) {
+        Alert.alert('Lỗi', 'Không thể tải danh sách hóa đơn');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchInvoices();
+  }, [user]);
+
+  const renderInvoiceItem = ({ item }) => (
+    <View style={styles.invoiceCard}>
+      <View style={styles.invoiceHeader}>
+        <Text style={styles.invoiceCode}>HD{item.InvoiceID.toString().padStart(4, '0')}</Text>
+        <Text
+          style={[
+            styles.invoiceStatus,
+            item.Status === 'Đã thanh toán' ? styles.paidStatus : styles.unpaidStatus,
+          ]}
+        >
+          {item.Status}
+        </Text>
+      </View>
+      <Text style={styles.invoiceDate}>
+        Ngày: {new Date(item.CreatedAt).toLocaleDateString()}
+      </Text>
+      <Text style={styles.invoiceAmount}>
+        Tổng tiền: {item.TotalAmount.toLocaleString()} VND
+      </Text>
+    </View>
+  );
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#2D9CDB" />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Hóa Đơn</Text>
-      
+      <Text style={styles.title}>Danh sách hóa đơn</Text>
       <FlatList
         data={invoices}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <View style={styles.invoiceCard}>
-            <View style={styles.invoiceHeader}>
-              <Text style={styles.invoiceCode}>{item.code}</Text>
-              <Text style={[
-                styles.invoiceStatus,
-                item.status === 'paid' ? styles.paidStatus : styles.unpaidStatus
-              ]}>
-                {item.status === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán'}
-              </Text>
-            </View>
-            <Text style={styles.invoiceDate}>Ngày: {item.date}</Text>
-            <Text style={styles.invoiceAmount}>Tổng tiền: {item.amount}</Text>
-            
-            {item.status === 'unpaid' && (
-              <TouchableOpacity style={styles.payButton}>
-                <Text style={styles.payButtonText}>Thanh toán</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        )}
+        keyExtractor={(item) => item.InvoiceID.toString()}
+        renderItem={renderInvoiceItem}
+        refreshing={loading}
+        onRefresh={async () => {
+          setLoading(true);
+          try {
+            const result = await getPatientInvoices(user.id);
+            setInvoices(result.data);
+          } catch {
+            Alert.alert('Lỗi', 'Không thể tải lại dữ liệu');
+          } finally {
+            setLoading(false);
+          }
+        }}
       />
     </View>
   );
@@ -46,6 +82,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
     padding: 15,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   title: {
     fontSize: 22,
@@ -94,28 +135,6 @@ const styles = StyleSheet.create({
   invoiceAmount: {
     fontWeight: 'bold',
     marginBottom: 10,
-  },
-  payButton: {
-    backgroundColor: '#2D9CDB',
-    padding: 10,
-    borderRadius: 5,
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  payButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
-  },
-  downloadButton: {
-    borderWidth: 1,
-    borderColor: '#2D9CDB',
-    padding: 10,
-    borderRadius: 5,
-    alignItems: 'center',
-  },
-  downloadButtonText: {
-    color: '#2D9CDB',
-    fontWeight: 'bold',
   },
 });
 

@@ -1,84 +1,71 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, FlatList } from 'react-native';
 
-const TimeSlotPicker = ({ selectedDate, bookedSlots, onSelect, selectedTime }) => {
-  const timeSlots = [
-    '08:00', '09:00', '10:00', '11:00', 
-    '13:00', '14:00', '15:00', '16:00'
-  ];
+const TimeSlotPicker = ({ availableSlots = [], selectedTime, onSelect }) => {
+  const renderItem = ({ item }) => {
+    const isSelected = selectedTime === item.time;
+
+    return (
+      <TouchableOpacity
+        style={[styles.slotButton, isSelected && styles.selectedSlot]}
+        onPress={() => onSelect(item)}
+      >
+        <Text style={[styles.slotText, isSelected && styles.selectedSlotText]}>
+          {item.time}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
+
+  const formattedSlots = availableSlots.map(slot => ({
+    scheduleId: slot.ScheduleID,
+    time: `${slot.StartTime.slice(0, 5)} - ${slot.EndTime.slice(0, 5)} (${slot.ShiftName})`
+  }));
+
+  if (!formattedSlots.length) {
+    return <Text style={styles.noSlotsText}>Không có khung giờ khả dụng</Text>;
+  }
 
   return (
-    <View style={styles.container}>
-      <FlatList
-        data={timeSlots}
-        keyExtractor={(item) => item}
-        numColumns={4}
-        columnWrapperStyle={styles.row}
-        renderItem={({ item }) => {
-          const isBooked = bookedSlots.includes(item);
-          const isSelected = selectedTime === item;
-          
-          return (
-            <TouchableOpacity
-              style={[
-                styles.timeSlot,
-                isBooked && styles.bookedSlot,
-                isSelected && styles.selectedSlot
-              ]}
-              onPress={() => !isBooked && onSelect(item)}
-              disabled={isBooked}
-            >
-              <Text style={[
-                styles.timeText,
-                isBooked && styles.bookedText,
-                isSelected && styles.selectedText
-              ]}>
-                {item}
-              </Text>
-              {isBooked && <Text style={styles.bookedLabel}>Đã đặt</Text>}
-            </TouchableOpacity>
-          );
-        }}
-      />
-    </View>
+    <FlatList
+      data={formattedSlots}
+      keyExtractor={(item) => item.scheduleId.toString()}
+      renderItem={renderItem}
+      numColumns={2}
+      contentContainerStyle={styles.container}
+    />
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 20,
+    paddingVertical: 10,
+    justifyContent: 'center',
   },
-  row: {
-    justifyContent: 'space-between',
-    marginBottom: 10,
-  },
-  timeSlot: {
-    width: '23%',
+  slotButton: {
+    backgroundColor: '#e0f7fa',
     padding: 10,
-    borderRadius: 5,
-    backgroundColor: '#E0E0E0',
+    margin: 5,
+    borderRadius: 8,
+    minWidth: '45%',
     alignItems: 'center',
-  },
-  timeText: {
-    color: '#212121',
-  },
-  bookedSlot: {
-    backgroundColor: '#FFCDD2',
-  },
-  bookedText: {
-    color: '#C62828',
-    textDecorationLine: 'line-through',
-  },
-  bookedLabel: {
-    fontSize: 10,
-    color: '#C62828',
   },
   selectedSlot: {
     backgroundColor: '#2D9CDB',
   },
-  selectedText: {
+  slotText: {
+    color: '#333',
+    fontSize: 14,
+  },
+  selectedSlotText: {
     color: 'white',
     fontWeight: 'bold',
+  },
+  noSlotsText: {
+    marginTop: 10,
+    fontStyle: 'italic',
+    color: '#888',
+    textAlign: 'center',
   },
 });
 

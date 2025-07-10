@@ -7,21 +7,33 @@ import {
   StyleSheet, 
   ScrollView,
   KeyboardAvoidingView,
-  Platform 
+  Platform,
+  ActivityIndicator
 } from 'react-native';
-import Icon from 'react-native-vector-icons/FontAwesome';
 import { AuthContext } from './../context/AuthContext';
 
 const LoginScreen = ({ navigation }) => {
-  const { signIn } = useContext(AuthContext);
-  const [username, setUsername] = useState('');
+  const { login } = useContext(AuthContext);
+  const [fullname, setFullname] = useState('');
   const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = () => {
-    // Xử lý đăng nhập
-    if (username && password) {
-      signIn('user-token'); // Thay bằng token thực tế sau khi xác thực
+  const handleLogin = async () => {
+    if (!fullname || !password) {
+      Alert.alert('Lỗi', 'Vui lòng nhập tên đăng nhập và mật khẩu');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const result = await login(fullname, password);
+      if (!result.success) {
+        Alert.alert('Lỗi đăng nhập', result.error || 'Đăng nhập thất bại');
+      }
+    } catch (error) {
+      Alert.alert('Lỗi', 'Có lỗi xảy ra khi đăng nhập');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -37,10 +49,10 @@ const LoginScreen = ({ navigation }) => {
           <Text style={styles.inputLabel}>Tên đăng nhập</Text>
           <TextInput
             style={styles.input}
-            placeholder="Nhập tên đăng nhập"
+            placeholder="Nhập họ tên"
             placeholderTextColor="#999"
-            value={username}
-            onChangeText={setUsername}
+            value={fullname}
+            onChangeText={setFullname}
             autoCapitalize="none"
           />
         </View>
@@ -64,8 +76,13 @@ const LoginScreen = ({ navigation }) => {
         <TouchableOpacity 
           style={styles.loginButton}
           onPress={handleLogin}
+          disabled={isLoading}
         >
-          <Text style={styles.loginButtonText}>Đăng nhập</Text>
+          {isLoading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.loginButtonText}>Đăng nhập</Text>
+          )}
         </TouchableOpacity>
 
         <View style={styles.signupContainer}>
@@ -117,18 +134,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#eee',
     marginVertical: 15,
   },
-  rememberContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  checkbox: {
-    marginRight: 10,
-  },
-  rememberText: {
-    fontSize: 16,
-    color: '#333',
-  },
   loginButton: {
     backgroundColor: '#2D9CDB',
     padding: 15,
@@ -136,32 +141,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 20,
   },
+  skipButton: {
+    backgroundColor: '#888', // Màu khác để phân biệt
+  },
   loginButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
-  },
-  orText: {
-    textAlign: 'center',
-    marginVertical: 15,
-    color: '#666',
-  },
-  googleButton: {
-    flexDirection: 'row',
-    borderWidth: 1,
-    borderColor: '#ddd',
-    padding: 15,
-    borderRadius: 5,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 30,
-  },
-  googleIcon: {
-    marginRight: 10,
-  },
-  googleButtonText: {
-    color: '#333',
-    fontSize: 16,
   },
   signupContainer: {
     flexDirection: 'row',

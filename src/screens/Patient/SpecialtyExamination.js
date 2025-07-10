@@ -1,25 +1,52 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Image } from 'react-native';
-
-const specialties = [
-  { id: '1', name: 'Khoa Răng Hàm Mặt' },
-  { id: '2', name: 'Khoa Thẩm Mỹ' },
-  { id: '3', name: 'Khoa Tai Mũi Họng' },
-  { id: '4', name: 'Khoa Tiêu Hóa' },
-  { id: '5', name: 'Khoa Da Liễu'},
-];
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  TextInput,
+  Image,
+  ActivityIndicator,
+  Alert
+} from 'react-native';
+import { getAllSpecialties } from '../../services/specialtyService';
 
 const SpecialtyExamination = ({ navigation }) => {
   const [searchText, setSearchText] = useState('');
-  
-  const filteredSpecialties = specialties.filter(spec => 
-    spec.name.toLowerCase().includes(searchText.toLowerCase())
+  const [specialties, setSpecialties] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadSpecialties = async () => {
+      try {
+        const response = await getAllSpecialties();
+        setSpecialties(response.data || []);
+      } catch (error) {
+        Alert.alert('Lỗi', 'Không thể tải danh sách chuyên khoa');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadSpecialties();
+  }, []);
+
+  const filteredSpecialties = specialties.filter((spec) =>
+    spec.Name.toLowerCase().includes(searchText.toLowerCase())
   );
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#2D9CDB" />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Khám Theo Chuyên Khoa</Text>
-      
+      <Text style={styles.title}>Chọn Chuyên Khoa</Text>
       <TextInput
         style={styles.searchInput}
         placeholder="Tìm kiếm chuyên khoa..."
@@ -29,19 +56,21 @@ const SpecialtyExamination = ({ navigation }) => {
 
       <FlatList
         data={filteredSpecialties}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.SpecialtyID.toString()}
         numColumns={2}
         columnWrapperStyle={styles.row}
         renderItem={({ item }) => (
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.card}
-            onPress={() => navigation.navigate('Booking', { specialty: item.name })}
+            onPress={() =>
+              navigation.navigate('DoctorBySpecialty', { specialty: item })
+            }
           >
-            <Image source={item.icon} style={styles.icon} />
-            <Text style={styles.cardText}>{item.name}</Text>
-            <TouchableOpacity style={styles.bookButton}>
-              <Text style={styles.bookButtonText}>Đặt lịch</Text>
-            </TouchableOpacity>
+            <Image
+              source={require('../../assets/default-department.png')}
+              style={styles.icon}
+            />
+            <Text style={styles.cardText}>{item.Name}</Text>
           </TouchableOpacity>
         )}
       />
@@ -49,63 +78,30 @@ const SpecialtyExamination = ({ navigation }) => {
   );
 };
 
+export default SpecialtyExamination;
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-    padding: 15,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#2D9CDB',
-    marginBottom: 20,
-  },
+  container: { flex: 1, padding: 16, backgroundColor: '#f5f5f5' },
+  title: { fontSize: 22, fontWeight: 'bold', marginBottom: 15, color: '#2D9CDB' },
   searchInput: {
-    backgroundColor: 'white',
+    backgroundColor: '#fff',
     borderRadius: 25,
     paddingHorizontal: 20,
     paddingVertical: 10,
-    marginBottom: 20,
     borderWidth: 1,
-    borderColor: '#BDBDBD',
+    borderColor: '#ccc',
+    marginBottom: 20
   },
-  row: {
-    justifyContent: 'space-between',
-    marginBottom: 15,
-  },
+  row: { justifyContent: 'space-between', marginBottom: 15 },
   card: {
     backgroundColor: 'white',
     borderRadius: 10,
     width: '48%',
     padding: 15,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    elevation: 3
   },
-  icon: {
-    width: 50,
-    height: 50,
-    marginBottom: 10,
-  },
-  cardText: {
-    textAlign: 'center',
-    marginBottom: 10,
-    fontWeight: '500',
-  },
-  bookButton: {
-    backgroundColor: '#2D9CDB',
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    borderRadius: 5,
-  },
-  bookButtonText: {
-    color: 'white',
-    fontSize: 12,
-  },
+  icon: { width: 50, height: 50, marginBottom: 10 },
+  cardText: { fontWeight: '500', marginBottom: 10 },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' }
 });
-
-export default SpecialtyExamination;

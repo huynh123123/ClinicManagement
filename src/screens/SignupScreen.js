@@ -1,54 +1,129 @@
-import React from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+  Alert,
+} from 'react-native';
+import api from '../services/api';
 
 const SignupScreen = ({ navigation }) => {
+  const [formData, setFormData] = useState({
+    FullName: '',
+    Email: '',
+    Password: '',
+    Phone: '',
+  });
+
+  const validateForm = () => {
+    const { FullName, Email, Password, Phone } = formData;
+
+    if (!FullName || !Email || !Password || !Phone) {
+      Alert.alert('Lỗi', 'Vui lòng nhập đầy đủ thông tin');
+      return false;
+    }
+
+    const emailRegex = /\S+@\S+\.\S+/;
+    if (!emailRegex.test(Email)) {
+      Alert.alert('Lỗi', 'Email không hợp lệ');
+      return false;
+    }
+
+    if (Password.length < 6) {
+      Alert.alert('Lỗi', 'Mật khẩu phải có ít nhất 6 ký tự');
+      return false;
+    }
+
+    const phoneRegex = /^[0-9]{9,11}$/;
+    if (!phoneRegex.test(Phone)) {
+      Alert.alert('Lỗi', 'Số điện thoại không hợp lệ');
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleSignup = async () => {
+    if (!validateForm()) return;
+
+    try {
+      console.log('📤 Dữ liệu gửi lên server:', formData);
+      await api.post('/auth/register', formData);
+      Alert.alert('Thành công', 'Đăng ký thành công!');
+      navigation.navigate('Login');
+    } catch (error) {
+      const message =
+        error?.message ||
+        error?.error ||
+        error?.data?.error ||
+        'Đăng ký không thành công';
+      Alert.alert('Lỗi', message);
+    }
+  };
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Đăng ký</Text>
-      
+
       <View style={styles.inputContainer}>
-        <Text style={styles.inputLabel}>Tên đăng nhập</Text>
+        <Text style={styles.inputLabel}>Họ và tên</Text>
         <TextInput
           style={styles.input}
-          placeholder=""
-          placeholderTextColor="#999"
+          value={formData.FullName}
+          onChangeText={(text) =>
+            setFormData({ ...formData, FullName: text })
+          }
+          placeholder="Nguyễn Văn A"
         />
       </View>
-      
+
+      <View style={styles.inputContainer}>
+        <Text style={styles.inputLabel}>Email</Text>
+        <TextInput
+          style={styles.input}
+          value={formData.Email}
+          onChangeText={(text) =>
+            setFormData({ ...formData, Email: text })
+          }
+          keyboardType="email-address"
+          autoCapitalize="none"
+          placeholder="email@example.com"
+        />
+      </View>
+
       <View style={styles.inputContainer}>
         <Text style={styles.inputLabel}>Mật khẩu</Text>
         <TextInput
           style={styles.input}
-          placeholderTextColor="#999"
+          value={formData.Password}
+          onChangeText={(text) =>
+            setFormData({ ...formData, Password: text })
+          }
           secureTextEntry={true}
+          placeholder="******"
         />
       </View>
-      
-      <View style={styles.inputContainer}>
-        <Text style={styles.inputLabel}>Tên đầy đủ</Text>
-        <TextInput
-          style={styles.input}
-          placeholder=""
-          placeholderTextColor="#999"
-        />
-      </View>
-      
+
       <View style={styles.inputContainer}>
         <Text style={styles.inputLabel}>Số điện thoại</Text>
         <TextInput
           style={styles.input}
-          placeholder=""
-          placeholderTextColor="#999"
+          value={formData.Phone}
+          onChangeText={(text) =>
+            setFormData({ ...formData, Phone: text })
+          }
           keyboardType="phone-pad"
+          placeholder="0123456789"
         />
       </View>
 
-      <View style={styles.separator} />
-      
-      <TouchableOpacity style={styles.continueButton}>
-        <Text style={styles.continueButtonText}>Tiếp tục</Text>
+      <TouchableOpacity style={styles.continueButton} onPress={handleSignup}>
+        <Text style={styles.continueButtonText}>Đăng ký</Text>
       </TouchableOpacity>
-      
+
       <View style={styles.loginContainer}>
         <Text style={styles.loginText}>Bạn đã có tài khoản? </Text>
         <TouchableOpacity onPress={() => navigation.navigate('Login')}>
@@ -87,21 +162,6 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     padding: 12,
     fontSize: 16,
-  },
-  separator: {
-    height: 1,
-    backgroundColor: '#eee',
-    marginVertical: 15,
-  },
-  termsText: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 20,
-    lineHeight: 20,
-  },
-  highlightText: {
-    color: '#4285F4',
-    fontWeight: 'bold',
   },
   continueButton: {
     backgroundColor: '#4285F4',

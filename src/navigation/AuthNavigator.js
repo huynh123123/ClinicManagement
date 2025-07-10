@@ -1,14 +1,17 @@
-// AuthNavigator.js
+import React, { useContext } from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import LoginScreen from '../screens/LoginScreen';
 import SignupScreen from '../screens/SignupScreen';
+import { AuthContext } from '../context/AuthContext';
 
 const Stack = createStackNavigator();
 
 export default function AuthNavigator() {
+  const { userToken } = useContext(AuthContext);
+
   return (
     <Stack.Navigator
-      initialRouteName="Login"
+      initialRouteName={userToken ? 'App' : 'Login'}
       screenOptions={{
         headerShown: false
       }}

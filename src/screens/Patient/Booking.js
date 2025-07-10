@@ -1,103 +1,163 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView } from 'react-native';
+import React, { useState, useContext } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Alert,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  TextInput,
+  Platform,
+  ScrollView,
+} from 'react-native';
 import { Calendar } from 'react-native-calendars';
 import TimeSlotPicker from './TimeSlotPicker';
+import { bookAppointment, getAvailableSchedules } from '../../services/appointmentService';
+import { AuthContext } from '../../context/AuthContext';
 
-const Booking = ({ route }) => {
+const Booking = ({ route, navigation }) => {
   const { specialty, doctor } = route.params || {};
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
-  
-  const bookedAppointments = {
-    '2024-07-15': ['09:00', '14:00'],
-    '2024-07-16': ['10:00', '15:00'],
-  };
+  const [availableSlots, setAvailableSlots] = useState([]);
+  const [selectedScheduleId, setSelectedScheduleId] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [bookingFor, setBookingFor] = useState('');
+  const [reason, setReason] = useState('');
 
-  const markedDates = {};
-  if (selectedDate) {
-    markedDates[selectedDate] = { selected: true, selectedColor: '#2D9CDB' };
-  }
-  
-  Object.keys(bookedAppointments).forEach(date => {
-    markedDates[date] = { marked: true, dotColor: '#FF5252' };
-  });
+  const { user, token } = useContext(AuthContext);
 
-  const handleDateSelect = (date) => {
+  const handleDateSelect = async (date) => {
     setSelectedDate(date);
     setSelectedTime('');
-  };
+    setSelectedScheduleId(null);
 
-  const handleTimeSelect = (time) => {
-    setSelectedTime(time);
-  };
-
-  const confirmBooking = () => {
-    if (!selectedDate || !selectedTime) {
-      Alert.alert('Thông báo', 'Vui lòng chọn ngày và giờ khám');
-      return;
+    if (!doctor?.id) {
+      return Alert.alert('Lỗi', 'Thiếu thông tin bác sĩ');
     }
-    
-    Alert.alert(
-      'Xác nhận đặt lịch',
-      `Bạn đã đặt lịch khám với ${doctor || specialty} vào ngày ${selectedDate} lúc ${selectedTime}`,
-      [
-        { text: 'Hủy', style: 'cancel' },
-        { text: 'Xác nhận', onPress: () => {
-          Alert.alert('Thành công', 'Đặt lịch thành công!');
-          // Here you would typically save the appointment to your backend
-        }},
-      ]
-    );
+
+    try {
+      const slots = await getAvailableSchedules(doctor.id, date, token);
+      setAvailableSlots(slots || []);
+    } catch (error) {
+            console.log('📤 Dữ liệu đặt lịch gửi lên:', doctor.id, date, token);
+
+      Alert.alert('Lỗi', 'Không thể tải lịch khả dụng');
+    }
+  };
+
+  const handleTimeSelect = (slot) => {
+    setSelectedTime(slot.time);
+    setSelectedScheduleId(slot.scheduleId);
+  };
+
+  const confirmBooking = async () => {
+    if (!selectedScheduleId || !bookingFor || !reason) {
+      return Alert.alert('Lỗi', 'Vui lòng nhập đầy đủ thông tin');
+    }
+
+    try {
+      setLoading(true);
+
+      const appointmentData = {
+        PatientId: user.id,
+        ScheduleId: selectedScheduleId,
+        BookingFor: bookingFor,
+        Reason: reason,
+      };
+
+      console.log('📤 Dữ liệu đặt lịch gửi lên:', appointmentData);
+      await bookAppointment(appointmentData, token);
+
+      Alert.alert('Thành công', 'Đặt lịch thành công!');
+      navigation.goBack();
+    } catch (error) {
+      Alert.alert('Lỗi', error?.message || 'Đặt lịch không thành công');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.title}>Đặt Lịch Khám</Text>
-      
-      {doctor && (
-        <View style={styles.infoContainer}>
-          <Text style={styles.label}>Bác sĩ:</Text>
-          <Text style={styles.value}>{doctor}</Text>
-        </View>
-      )}
-      
-      {specialty && (
-        <View style={styles.infoContainer}>
-          <Text style={styles.label}>Chuyên khoa:</Text>
-          <Text style={styles.value}>{specialty}</Text>
-        </View>
-      )}
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+        <Text style={styles.title}>Đặt Lịch Khám</Text>
 
-      <Text style={styles.sectionTitle}>Chọn ngày khám</Text>
-      <Calendar
-        style={styles.calendar}
-        markedDates={markedDates}
-        onDayPress={(day) => handleDateSelect(day.dateString)}
-        theme={{
-          selectedDayBackgroundColor: '#2D9CDB',
-          todayTextColor: '#2D9CDB',
-          arrowColor: '#2D9CDB',
-        }}
-      />
+        {doctor && (
+          <View style={styles.infoContainer}>
+            <Text style={styles.label}>Bác sĩ:</Text>
+            <Text style={styles.value}>{doctor.FullName}</Text>
+          </View>
+        )}
 
-      {selectedDate && (
-        <>
-          <Text style={styles.sectionTitle}>Chọn giờ khám</Text>
-          <TimeSlotPicker 
-            selectedDate={selectedDate}
-            bookedSlots={bookedAppointments[selectedDate] || []}
-            onSelect={handleTimeSelect}
-            selectedTime={selectedTime}
-          />
-        </>
-      )}
+        {specialty && (
+          <View style={styles.infoContainer}>
+            <Text style={styles.label}>Chuyên khoa:</Text>
+            <Text style={styles.value}>{specialty.Name}</Text>
+          </View>
+        )}
 
-      {selectedTime && (
-        <TouchableOpacity style={styles.confirmButton} onPress={confirmBooking}>
-          <Text style={styles.confirmButtonText}>Hoàn tất đặt lịch</Text>
-        </TouchableOpacity>
-      )}
-    </ScrollView>
+        <Text style={styles.sectionTitle}>Chọn ngày khám</Text>
+        <Calendar
+          style={styles.calendar}
+          onDayPress={(day) => handleDateSelect(day.dateString)}
+          markedDates={
+            selectedDate
+              ? { [selectedDate]: { selected: true, marked: true } }
+              : {}
+          }
+          theme={{
+            selectedDayBackgroundColor: '#2D9CDB',
+            todayTextColor: '#2D9CDB',
+            arrowColor: '#2D9CDB',
+          }}
+        />
+
+        {selectedDate && (
+          <>
+            <Text style={styles.sectionTitle}>Chọn giờ khám</Text>
+            <TimeSlotPicker
+              availableSlots={availableSlots}
+              onSelect={handleTimeSelect}
+              selectedTime={selectedTime}
+            />
+          </>
+        )}
+
+        {selectedTime && (
+          <>
+            <Text style={styles.sectionTitle}>Thông tin đặt lịch</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Người được khám"
+              value={bookingFor}
+              onChangeText={setBookingFor}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Lý do khám"
+              value={reason}
+              onChangeText={setReason}
+              multiline
+            />
+
+            <TouchableOpacity
+              style={styles.confirmButton}
+              onPress={confirmBooking}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="white" />
+              ) : (
+                <Text style={styles.confirmButtonText}>Hoàn tất đặt lịch</Text>
+              )}
+            </TouchableOpacity>
+          </>
+        )}
+    </KeyboardAvoidingView>
   );
 };
 
@@ -115,7 +175,7 @@ const styles = StyleSheet.create({
   },
   infoContainer: {
     flexDirection: 'row',
-    marginBottom: 15,
+    marginBottom: 10,
   },
   label: {
     fontWeight: 'bold',
@@ -136,12 +196,20 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginBottom: 20,
   },
+  input: {
+    backgroundColor: 'white',
+    borderColor: '#ccc',
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 15,
+  },
   confirmButton: {
     backgroundColor: '#2D9CDB',
     padding: 15,
     borderRadius: 10,
     alignItems: 'center',
-    marginTop: 20,
+    marginTop: 10,
     marginBottom: 30,
   },
   confirmButtonText: {

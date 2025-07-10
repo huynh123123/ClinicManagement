@@ -1,147 +1,102 @@
-import React, { useEffect, useRef } from 'react';
-import {
-  Animated,
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Dimensions,
-} from 'react-native';
+import React, { useContext } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { DrawerContentScrollView, DrawerItem } from '@react-navigation/drawer';
 import { AuthContext } from '../../context/AuthContext';
 
-const screenWidth = Dimensions.get('window').width;
+const CustomDrawer = (props) => {
+  const { user, logout } = useContext(AuthContext);
 
-const CustomDrawer = ({ navigation, onClose }) => {
-  const { signOut } = useContext(AuthContext);
-  const slideAnim = useRef(new Animated.Value(-screenWidth)).current;
-
-  useEffect(() => {
-    Animated.timing(slideAnim, {
-      toValue: 0,
-      duration: 300,
-      useNativeDriver: true,
-    }).start();
-  }, []);
-
-  const handleClose = () => {
-    Animated.timing(slideAnim, {
-      toValue: -screenWidth,
-      duration: 200,
-      useNativeDriver: true,
-    }).start(() => {
-      onClose();
-    });
-  };
-
-  // Cập nhật menuItems để khớp với tên màn hình trong Stack Navigator
   const menuItems = [
-    { label: 'Trang chủ', screen: 'Home' },
-    { label: 'Quản lý hồ sơ bệnh án', screen: 'MedicalRecords' },
-    { label: 'Lịch sử đã khám bệnh', screen: 'MedicalHistory' },
-    { label: 'Khám theo chuyên khoa', screen: 'SpecialtyExamination' },
-    { label: 'Khám theo bác sĩ', screen: 'DoctorExamination' },
-    { label: 'Đặt lịch khám', screen: 'Booking' },
-    { label: 'Xem danh sách khoa và bác sĩ', screen: 'DepartmentDoctorsList' },
-    { label: 'Xem lịch đã hẹn', screen: 'AppointmentList' },
-    { label: 'Hóa đơn', screen: 'InvoiceList' },
+    { label: 'Trang chủ', icon: 'home', screen: 'Home' },
+    { label: 'Hồ sơ bệnh án', icon: 'calendar-today', screen: 'MedicalRecord' },
+    { label: 'Đặt lịch khám', icon: 'calendar-today', screen: 'SpecialtyExamination' },
+    { label: 'Danh sách khoa', icon: 'list', screen: 'DepartmentsList' },
+    { label: 'Lịch hẹn', icon: 'event-note', screen: 'AppointmentList' },
+    { label: 'Hóa đơn', icon: 'receipt', screen: 'InvoiceList' },
   ];
 
-  const navigateTo = (screen) => {
-    navigation.navigate(screen);
-    handleClose();
-  };
-
   return (
-    <Animated.View 
-      style={[
-        styles.drawer, 
-        { 
-          transform: [{ translateX: slideAnim }],
-          shadowColor: '#000',
-          shadowOffset: { width: 2, height: 2 },
-          shadowOpacity: 0.3,
-          shadowRadius: 3,
-        }
-      ]}
-    >
-      <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-        <Text style={styles.closeText}>✖ Đóng</Text>
-      </TouchableOpacity>
+    <DrawerContentScrollView {...props} contentContainerStyle={styles.container}>
+      <View style={styles.header}>
+        <Image
+          source={user?.avatar ? { uri: user.avatar } : require('../../assets/avatar.png')}
+          style={styles.avatar}
+        />
+        <Text style={styles.userName}>{user?.FullName || 'Khách'}</Text>
+      </View>
 
       <View style={styles.menuContainer}>
         {menuItems.map((item, index) => (
-          <TouchableOpacity 
-            key={index} 
-            onPress={() => navigateTo(item.screen)}
-            style={styles.menuItem}
-          >
-            <Text style={styles.menuText}>{item.label}</Text>
-          </TouchableOpacity>
+          <DrawerItem
+            key={index}
+            label={item.label}
+            onPress={() => props.navigation.navigate('MainStack', { screen: item.screen })}
+            labelStyle={styles.menuItemText}
+          />
         ))}
       </View>
 
-      <TouchableOpacity 
-        onPress={() => {
-          signOut();
-          handleClose();
-        }} 
-        style={styles.logoutButton}
-      >
-        <Icon name="logout" size={24} color="#fff" />
-        <Text style={styles.logoutText}>Đăng xuất</Text>
-      </TouchableOpacity>
-
-    </Animated.View>
+      <View style={styles.footer}>
+        <TouchableOpacity 
+          style={styles.logoutButton}
+          onPress={logout}
+        >
+          <Text style={styles.logoutText}>Đăng xuất</Text>
+        </TouchableOpacity>
+      </View>
+    </DrawerContentScrollView>
   );
 };
 
-// Giữ nguyên styles
 const styles = StyleSheet.create({
-  drawer: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: 280,
-    backgroundColor: '#ffffff',
-    paddingVertical: 20,
-    zIndex: 100,
-    elevation: 20,
+  container: {
+    flex: 1,
   },
-  closeButton: {
-    padding: 15,
-    alignSelf: 'flex-end',
-  },
-  closeText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#ff3b30',
-  },
-  menuContainer: {
-    marginTop: 10,
-  },
-  menuItem: {
-    paddingVertical: 15,
-    paddingHorizontal: 20,
+  header: {
+    padding: 20,
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
+    alignItems: 'center',
   },
-  menuText: {
-    fontSize: 16,
-    color: '#333333',
+  avatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    marginBottom: 10,
+  },
+  userName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 5,
+  },
+  userEmail: {
+    fontSize: 14,
+    color: '#666',
+  },
+  menuContainer: {
+    flex: 1,
+    paddingTop: 10,
+  },
+  menuItemText: {
+    fontSize: 15,
+    fontWeight: '500',
+    marginLeft: -15,
+  },
+  footer: {
+    padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
   },
   logoutButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     backgroundColor: '#2D9CDB',
-    padding: 15,
-    margin: 20,
+    padding: 12,
     borderRadius: 5,
+    justifyContent: 'center',
   },
   logoutText: {
     color: '#fff',
-    fontSize: 16,
     fontWeight: 'bold',
     marginLeft: 10,
   },

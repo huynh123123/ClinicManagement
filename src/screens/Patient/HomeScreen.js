@@ -1,284 +1,197 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import {
   View,
   Text,
-  ScrollView,
   TouchableOpacity,
   Image,
   StyleSheet,
-  Dimensions,
   TextInput,
+  ActivityIndicator,
+  Alert,
+  RefreshControl,
+  FlatList,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import CustomDrawer from './CustomDrawer';
-
-// Dữ liệu mẫu thay thế API
-const sampleSpecialties = [
-  { SpecialtyID: 1, Name: 'Nội khoa', Description: 'Khám và điều trị bệnh nội khoa' },
-  { SpecialtyID: 2, Name: 'Ngoại khoa', Description: 'Phẫu thuật và điều trị ngoại khoa' },
-  { SpecialtyID: 3, Name: 'Nhi khoa', Description: 'Chuyên về trẻ em' },
-  { SpecialtyID: 4, Name: 'Tai Mũi Họng', Description: 'Khám các bệnh về tai mũi họng' },
-  { SpecialtyID: 5, Name: 'Da liễu', Description: 'Chuyên về da và thẩm mỹ' },
-];
-
-const sampleDoctors = [
-  { UserID: 1, FullName: 'BS. Nguyễn Văn A', SpecialtyName: 'Nội khoa' },
-  { UserID: 2, FullName: 'BS. Trần Thị B', SpecialtyName: 'Ngoại khoa' },
-  { UserID: 3, FullName: 'BS. Lê Văn C', SpecialtyName: 'Nhi khoa' },
-  { UserID: 4, FullName: 'BS. Phạm Thị D', SpecialtyName: 'Tai Mũi Họng' },
-  { UserID: 5, FullName: 'BS. Hoàng Văn E', SpecialtyName: 'Da liễu' },
-];
-
-const screenWidth = Dimensions.get('window').width;
-const itemsPerPage = 3;
-
-const chunkArray = (arr, chunkSize) => {
-  const result = [];
-  for (let i = 0; i < arr.length; i += chunkSize) {
-    result.push(arr.slice(i, i + chunkSize));
-  }
-  return result;
-};
+import { getAllSpecialties } from '../../services/specialtyService';
+import { getFeaturedDoctors } from '../../services/doctorService';
+import { AuthContext } from '../../context/AuthContext';
 
 const HomeScreen = () => {
-  const [specialties] = useState(sampleSpecialties);
-  const [doctors] = useState(sampleDoctors);
-  const [page, setPage] = useState(0);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [drawerVisible, setDrawerVisible] = useState(false);
-
+  const [specialties, setSpecialties] = useState([]);
+  const [doctors, setDoctors] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const navigation = useNavigation();
+  const { user } = useContext(AuthContext);
 
-  const chunkedSpecialties = chunkArray(specialties, itemsPerPage);
-  const displayedSpecialties = chunkedSpecialties[page] || [];
-
-  const nextPage = () => {
-    if (page < chunkedSpecialties.length - 1) setPage(page + 1);
+  const loadData = async () => {
+    try {
+      const [specRes, docRes] = await Promise.all([
+        getAllSpecialties(),
+        getFeaturedDoctors(),
+      ]);
+      setSpecialties(specRes.data || []);
+      setDoctors(docRes.data || []);
+    } catch (err) {
+      Alert.alert('Lỗi', 'Không thể tải dữ liệu');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   };
 
-  const prevPage = () => {
-    if (page > 0) setPage(page - 1);
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadData();
   };
 
-  const navigateTo = (screen) => {
-    setDrawerVisible(false);
-    navigation.navigate(screen);
-  };
+  const renderHeader = () => (
+    <View>
+      <Text style={styles.title}>Chào mừng {user?.FullName || 'bạn'} 👋</Text>
+
+      <TouchableOpacity
+        style={styles.button}
+        onPress={() => navigation.navigate('AppointmentList')}
+      >
+        <Text style={styles.buttonText}>📅 Xem lịch hẹn của tôi</Text>
+      </TouchableOpacity>
+
+      <TextInput
+        placeholder="🔍 Tìm kiếm chuyên khoa hoặc bác sĩ..."
+        style={styles.searchInput}
+        editable={false}
+      />
+
+      <Text style={styles.sectionTitle}>Chuyên khoa nổi bật</Text>
+      <FlatList
+        data={specialties}
+        keyExtractor={(item) => item.SpecialtyID.toString()}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={styles.specialtyCard}
+            onPress={() =>
+              navigation.navigate('DoctorBySpecialty', { specialty: item })
+            }
+          >
+            <Image
+              source={require('../../assets/default-department.png')}
+              style={styles.icon}
+            />
+            <Text style={styles.specialtyName}>{item.Name}</Text>
+          </TouchableOpacity>
+        )}
+        ListEmptyComponent={
+          <Text style={styles.noData}>Không có chuyên khoa</Text>
+        }
+      />
+
+      <Text style={styles.sectionTitle}>Bác sĩ tiêu biểu</Text>
+    </View>
+  );
+
+  if (loading) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color="#2D9CDB" />
+      </View>
+    );
+  }
 
   return (
-    <View style={{ flex: 1 }}>
-      <ScrollView style={styles.container}>
-        {/* Header */}
-        <View style={styles.headerRow}>
-          <TouchableOpacity onPress={() => setDrawerVisible(true)}>
-            <Text style={{ fontSize: 24 }}>☰</Text>
-          </TouchableOpacity>
-          <Text style={styles.logo}>🏥 PolyCare</Text>
-          <TouchableOpacity onPress={() => console.log('Thông báo')}>
-          </TouchableOpacity>
-        </View>
-
-        {/* Button Lịch hẹn */}
-        <TouchableOpacity 
-          style={styles.appointmentButton}
-          onPress={() => navigateTo('AppointmentList')}
+    <FlatList
+      style={styles.container}
+      data={doctors}
+      keyExtractor={(item) => item.UserID.toString()}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
+      ListHeaderComponent={renderHeader}
+      renderItem={({ item }) => (
+        <TouchableOpacity
+          style={styles.doctorCard}
+          onPress={() =>
+            navigation.navigate('Booking', {
+              doctor: {
+                id: item.UserID,
+                FullName: item.FullName,
+                SpecialtyName: item.SpecialtyName,
+              },
+            })
+          }
         >
-          <Text style={styles.appointmentText}>LỊCH HẸN</Text>
+          <Image
+            source={require('../../assets/default-department.png')}
+            style={styles.avatar}
+          />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.doctorName}>{item.FullName}</Text>
+            <Text style={styles.doctorSpecialty}>
+              {item.SpecialtyName || 'Không xác định'}
+            </Text>
+          </View>
         </TouchableOpacity>
-
-        {/* Thanh tìm kiếm */}
-        <TextInput
-          placeholder="🔍 Tìm chuyên khoa, bác sĩ..."
-          value={searchTerm}
-          onChangeText={setSearchTerm}
-          onSubmitEditing={() => {
-            if (searchTerm.trim() !== '') {
-              navigation.navigate('SearchScreen', { keyword: searchTerm });
-            }
-          }}
-          style={styles.searchInput}
-        />
-
-        {/* Chuyên khoa phổ biến */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Chuyên khoa phổ biến</Text>
-          <View style={styles.specialtyRow}>
-            <TouchableOpacity onPress={prevPage} style={styles.arrowBox}>
-              <Text style={styles.arrowText}>◀︎</Text>
-            </TouchableOpacity>
-
-            {displayedSpecialties.map((item) => (
-              <TouchableOpacity 
-                key={item.SpecialtyID} 
-                style={styles.boxGrid}
-                onPress={() => navigation.navigate('SpecialtyDetail', { specialty: item })}
-              >
-                <Text style={styles.specialtyName}>{item.Name}</Text>
-              </TouchableOpacity>
-            ))}
-
-            <TouchableOpacity onPress={nextPage} style={styles.arrowBox}>
-              <Text style={styles.arrowText}>▶︎</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Danh sách bác sĩ */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Bác sĩ nổi bật</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('DoctorList')}>
-              <Text style={styles.seeAll}>Xem tất cả</Text>
-            </TouchableOpacity>
-          </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {doctors.map((doctor) => (
-              <TouchableOpacity 
-                key={doctor.UserID} 
-                style={styles.doctorBox}
-                onPress={() => navigation.navigate('DoctorDetail', { doctor })}
-              >
-                <Text style={styles.doctorName}>{doctor.FullName}</Text>
-                <Text style={styles.specialty}>{doctor.SpecialtyName}</Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-      </ScrollView>
-
-      {/* Custom Drawer */}
-      {drawerVisible && (
-        <CustomDrawer
-          onClose={() => setDrawerVisible(false)}
-          navigation={navigation}
-        />
       )}
-    </View>
+      ListEmptyComponent={
+        <Text style={styles.noData}>Không có bác sĩ nổi bật</Text>
+      }
+    />
   );
 };
 
+export default HomeScreen;
+
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1,
-    padding: 16,
-    backgroundColor: '#f8f9fa',
-  },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  logo: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#2D9CDB',
-  },
-  notificationIcon: {
-    width: 24,
-    height: 24,
-  },
-  appointmentButton: {
+  container: { flex: 1, backgroundColor: '#f8f9fa', padding: 15 },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  title: { fontSize: 22, fontWeight: 'bold', color: '#2D9CDB', marginBottom: 15 },
+  button: {
     backgroundColor: '#2D9CDB',
-    padding: 15,
-    borderRadius: 10,
+    padding: 12,
+    borderRadius: 8,
     alignItems: 'center',
     marginBottom: 20,
-    elevation: 3,
   },
-  appointmentText: {
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
+  buttonText: { color: 'white', fontWeight: 'bold' },
   searchInput: {
-    backgroundColor: 'white',
+    backgroundColor: '#fff',
     paddingHorizontal: 15,
-    paddingVertical: 12,
+    paddingVertical: 10,
     borderRadius: 10,
     marginBottom: 20,
-    fontSize: 16,
-    elevation: 2,
-  },
-  section: {
-    marginBottom: 25,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 15,
+    borderColor: '#ccc',
+    borderWidth: 1,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
+    marginTop: 15,
+    marginBottom: 10,
     color: '#333',
   },
-  seeAll: {
-    color: '#2D9CDB',
-    fontSize: 14,
-  },
-  specialtyRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  arrowBox: {
-    width: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  arrowText: {
-    fontSize: 24,
-    color: '#2D9CDB',
-  },
-  boxGrid: {
-    backgroundColor: 'white',
-    width: (screenWidth - 120) / 3,
-    height: 120,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 10,
-    marginHorizontal: 5,
-    elevation: 2,
-  },
-  icon: {
-    width: 40,
-    height: 40,
-    marginBottom: 10,
-  },
-  specialtyName: {
-    textAlign: 'center',
-    fontSize: 14,
-    color: '#555',
-  },
-  doctorBox: {
-    backgroundColor: 'white',
-    width: 150,
-    borderRadius: 10,
-    padding: 15,
+  specialtyCard: {
     marginRight: 15,
     alignItems: 'center',
+    paddingBottom: 5,
+  },
+  icon: { width: 60, height: 60, marginBottom: 5 },
+  specialtyName: { textAlign: 'center', fontWeight: '500' },
+  doctorCard: {
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 15,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
     elevation: 2,
   },
-  avatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    marginBottom: 10,
-  },
-  doctorName: {
-    fontWeight: 'bold',
-    fontSize: 15,
-    textAlign: 'center',
-    marginBottom: 5,
-  },
-  specialty: {
-    fontSize: 13,
-    color: '#666',
-    textAlign: 'center',
-  },
+  avatar: { width: 60, height: 60, borderRadius: 30, marginRight: 15 },
+  doctorName: { fontWeight: 'bold', fontSize: 16 },
+  doctorSpecialty: { color: '#666' },
+  noData: { textAlign: 'center', color: '#aaa', marginVertical: 20 },
 });
-
-export default HomeScreen;

@@ -1,157 +1,169 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Image } from 'react-native';
-
-const doctors = [
-  { 
-    id: '1', 
-    name: 'BS. Nguyễn Văn C', 
-    specialty: 'Tai Mũi Họng', 
-    rating: 4.8,
-    schedule: ['Mon', 'Wed', 'Fri']
-  },
-  { 
-    id: '2', 
-    name: 'BS. Trần Thị D', 
-    specialty: 'Tiêu hóa', 
-    rating: 4.5,
-    schedule: ['Tue', 'Thu', 'Sat']
-  },
-  { 
-    id: '3', 
-    name: 'BS. Lê Văn E', 
-    specialty: 'Da liễu', 
-    rating: 4.9,
-    schedule: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']
-  },
-];
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  TextInput,
+  Image,
+  ActivityIndicator,
+  Alert,
+} from 'react-native';
+import { getAllDoctors } from '../../services/doctorService';
 
 const DoctorExamination = ({ navigation }) => {
+  const [doctors, setDoctors] = useState([]);
   const [searchText, setSearchText] = useState('');
-  
-  const filteredDoctors = doctors.filter(doctor => 
-    doctor.name.toLowerCase().includes(searchText.toLowerCase()) || 
-    doctor.specialty.toLowerCase().includes(searchText.toLowerCase())
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchDoctors = async () => {
+      try {
+        const res = await getAllDoctors();
+        if (isMounted) {
+          setDoctors(res.data || []);
+        }
+      } catch (err) {
+        if (isMounted) {
+          Alert.alert('Lỗi', 'Không thể tải danh sách bác sĩ');
+        }
+      } finally {
+        isMounted && setLoading(false);
+      }
+    };
+
+    fetchDoctors();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const filteredDoctors = (doctors || []).filter((doc) =>
+    doc.FullName.toLowerCase().includes(searchText.toLowerCase()) ||
+    doc.SpecialtyName?.toLowerCase().includes(searchText.toLowerCase())
   );
+
+  const renderDoctor = ({ item }) => (
+    <View style={styles.card}>
+      <Image
+        source={require('../../assets/default-avatar.png')}
+        style={styles.avatar}
+      />
+      <View style={styles.infoContainer}>
+        <Text style={styles.name}>{item.FullName}</Text>
+        <Text style={styles.specialty}>{item.SpecialtyName || 'Chưa rõ chuyên khoa'}</Text>
+        <Text style={styles.room}>Phòng: {item.RoomName || 'Không xác định'}</Text>
+        <Text style={styles.department}>Khoa: {item.DepartmentName || 'Không xác định'}</Text>
+      </View>
+      <TouchableOpacity
+        style={styles.bookButton}
+        onPress={() => navigation.navigate('Booking', { doctor: item })}
+      >
+        <Text style={styles.bookText}>Đặt lịch</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  if (loading) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color="#2D9CDB" />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Khám Theo Bác Sĩ</Text>
-      
       <TextInput
         style={styles.searchInput}
-        placeholder="Tìm bác sĩ theo tên/chuyên khoa..."
+        placeholder="Tìm bác sĩ theo tên hoặc chuyên khoa..."
         value={searchText}
         onChangeText={setSearchText}
       />
-
       <FlatList
         data={filteredDoctors}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            <Image source={item.avatar} style={styles.avatar} />
-            <View style={styles.infoContainer}>
-              <Text style={styles.doctorName}>{item.name}</Text>
-              <Text style={styles.specialty}>{item.specialty}</Text>
-              <View style={styles.ratingContainer}>
-                <Text style={styles.ratingText}>{item.rating}</Text>
-                <Text style={styles.star}>★</Text>
-              </View>
-              <Text style={styles.schedule}>Lịch làm việc: {item.schedule.join(', ')}</Text>
-            </View>
-            <TouchableOpacity 
-              style={styles.bookButton}
-              onPress={() => navigation.navigate('Booking', { doctor: item.name })}
-            >
-              <Text style={styles.bookButtonText}>Đặt lịch</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+        keyExtractor={(item) => item.UserID.toString()}
+        renderItem={renderDoctor}
+        contentContainerStyle={{ paddingBottom: 20 }}
       />
     </View>
   );
 };
 
+export default DoctorExamination;
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
-    padding: 15,
+    padding: 16,
   },
   title: {
     fontSize: 22,
     fontWeight: 'bold',
     color: '#2D9CDB',
-    marginBottom: 20,
+    marginBottom: 15,
   },
   searchInput: {
     backgroundColor: 'white',
-    borderRadius: 25,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    marginBottom: 20,
+    borderRadius: 10,
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderColor: '#ccc',
     borderWidth: 1,
-    borderColor: '#BDBDBD',
+    marginBottom: 15,
   },
   card: {
     backgroundColor: 'white',
     borderRadius: 10,
-    padding: 15,
-    marginBottom: 15,
     flexDirection: 'row',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    padding: 15,
+    marginBottom: 12,
     elevation: 3,
   },
   avatar: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     marginRight: 15,
   },
   infoContainer: {
     flex: 1,
   },
-  doctorName: {
-    fontSize: 16,
+  name: {
     fontWeight: 'bold',
-    marginBottom: 3,
+    fontSize: 16,
+    marginBottom: 2,
   },
   specialty: {
-    color: '#757575',
-    marginBottom: 5,
+    color: '#555',
+    marginBottom: 2,
   },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 5,
-  },
-  ratingText: {
-    marginRight: 3,
-    color: '#FFC107',
-    fontWeight: 'bold',
-  },
-  star: {
-    color: '#FFC107',
-    fontSize: 16,
-  },
-  schedule: {
+  room: {
+    color: '#888',
     fontSize: 12,
-    color: '#616161',
+  },
+  department: {
+    color: '#888',
+    fontSize: 12,
   },
   bookButton: {
     backgroundColor: '#2D9CDB',
     paddingVertical: 8,
-    paddingHorizontal: 15,
+    paddingHorizontal: 12,
     borderRadius: 5,
+    alignSelf: 'center',
   },
-  bookButtonText: {
+  bookText: {
     color: 'white',
     fontWeight: 'bold',
   },
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 });
-
-export default DoctorExamination;
