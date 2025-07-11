@@ -2,19 +2,32 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList, StatusBar } from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { fetchDoctorSchedule } from '../../../../Api/Doctor/ScheduleApi';
 import { useAuth } from '../../../../context/AuthContext';
 
 const WorkSchedule = ({ navigation }) => {
     const [selectedWeek, setSelectedWeek] = useState(0);
     const [workSchedule, setWorkSchedule] = useState([]);
+    const [scheduleData, setScheduleData] = useState([]);
+    const [loading, setLoading] = useState(true);
     const { user } = useAuth();
 
-    const scheduleData = [
-        { date: '2025-07-03', shifts: [{ time: '08:00 - 12:00', type: 'Sáng' }, { time: '14:00 - 17:00', type: 'Chiều' }] },
-        { date: '2025-07-04', shifts: [{ time: '08:00 - 12:00', type: 'Sáng' }] },
-        { date: '2025-07-05', shifts: [{ time: '14:00 - 17:00', type: 'Chiều' }] },
-        { date: '2025-07-06', shifts: [] },
-    ];
+    const fetchSchedule = async () => {
+        try {
+            setLoading(true);
+            const response = await fetchDoctorSchedule(user.id);
+            setScheduleData(response.data || response || []);
+        } catch (error) {
+            console.error('Error fetching schedule:', error);
+            setScheduleData([]);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchSchedule();
+    }, []);
 
     useEffect(() => {
         const weekDates = getWeekDates(selectedWeek);
@@ -23,7 +36,7 @@ const WorkSchedule = ({ navigation }) => {
             return scheduleData.find(s => s.date === dateString) || { date: dateString, shifts: [] };
         });
         setWorkSchedule(weekSchedule);
-    }, [selectedWeek]);
+    }, [selectedWeek, scheduleData]);
 
     const getWeekDates = (weekOffset = 0) => {
         const today = new Date();
@@ -41,18 +54,18 @@ const WorkSchedule = ({ navigation }) => {
 
     const getShiftIcon = (type) => {
         switch (type) {
-            case 'Sáng': return 'white-balance-sunny';
-            case 'Chiều': return 'weather-sunset';
-            case 'Tối': return 'weather-night';
+            case 'Ca sáng': return 'white-balance-sunny';
+            case 'Ca chiều': return 'weather-sunset';
+            case 'Ca tối': return 'weather-night';
             default: return 'clock-outline';
         }
     };
 
     const getShiftColor = (type) => {
         switch (type) {
-            case 'Sáng': return '#FF9800';
-            case 'Chiều': return '#FF5722';
-            case 'Tối': return '#3F51B5';
+            case 'Ca sáng': return '#FF9800';
+            case 'Ca chiều': return '#FF5722';
+            case 'Ca tối': return '#3F51B5';
             default: return '#4CAF50';
         }
     };
@@ -87,15 +100,17 @@ const WorkSchedule = ({ navigation }) => {
                         item.shifts.map((shift, index) => (
                             <View key={index} style={[styles.shift, { borderLeftColor: getShiftColor(shift.type) }]}>
                                 <View style={styles.shiftContent}>
-                                    <MaterialCommunityIcons 
-                                        name={getShiftIcon(shift.type)} 
-                                        size={20} 
+                                    <MaterialCommunityIcons
+                                        name={getShiftIcon(shift.type)}
+                                        size={20}
                                         color={getShiftColor(shift.type)}
                                         style={styles.shiftIcon}
                                     />
                                     <View style={styles.shiftInfo}>
-                                        <Text style={styles.shiftType}>{shift.type}</Text>
-                                        <Text style={styles.shiftTime}>{shift.time}</Text>
+                                        <View style={styles.shiftInfo}>
+                                            <Text style={styles.shiftType}>{shift.type}</Text>
+                                            <Text style={styles.shiftTime}>{shift.startTime} - {shift.endTime}</Text>
+                                        </View>
                                     </View>
                                 </View>
                             </View>
@@ -111,15 +126,23 @@ const WorkSchedule = ({ navigation }) => {
         );
     };
 
+    if (loading) {
+        return (
+            <View style={[styles.container, styles.centerContent]}>
+                <Text>Đang tải lịch làm việc...</Text>
+            </View>
+        );
+    }
+
     const weekDates = getWeekDates(selectedWeek);
     const weekRange = `${formatDate(weekDates[0])} - ${formatDate(weekDates[6])}`;
 
     return (
         <View style={styles.container}>
             <StatusBar barStyle="light-content" backgroundColor="#1976d2" />
-            
+
             <View style={styles.headerContainer}>
-                <TouchableOpacity 
+                <TouchableOpacity
                     onPress={() => navigation.navigate('Main')}
                     style={styles.backButton}
                 >
@@ -130,19 +153,19 @@ const WorkSchedule = ({ navigation }) => {
             </View>
 
             <View style={styles.weekNav}>
-                <TouchableOpacity 
+                <TouchableOpacity
                     onPress={() => setSelectedWeek(selectedWeek - 1)}
                     style={styles.navButton}
                 >
                     <MaterialIcons name="chevron-left" size={28} color="#1976d2" />
                 </TouchableOpacity>
-                
+
                 <View style={styles.weekInfo}>
                     <Text style={styles.weekText}>Tuần {Math.abs(selectedWeek) + 1}</Text>
                     <Text style={styles.weekRange}>{weekRange}</Text>
                 </View>
-                
-                <TouchableOpacity 
+
+                <TouchableOpacity
                     onPress={() => setSelectedWeek(selectedWeek + 1)}
                     style={styles.navButton}
                 >
@@ -162,9 +185,13 @@ const WorkSchedule = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-    container: { 
-        flex: 1, 
-        backgroundColor: '#f8f9fa' 
+    container: {
+        flex: 1,
+        backgroundColor: '#f8f9fa'
+    },
+    centerContent: {
+        justifyContent: 'center',
+        alignItems: 'center'
     },
     headerContainer: {
         flexDirection: 'row',
@@ -172,7 +199,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
     },
     backButton: {
-      width: 38,
+        width: 38,
         height: 38,
         borderRadius: 19,
         backgroundColor: '#fff',
@@ -187,20 +214,20 @@ const styles = StyleSheet.create({
         shadowRadius: 4,
         elevation: 2,
     },
-    title: { 
-        fontSize: 20, 
-        fontWeight: 'bold', 
+    title: {
+        fontSize: 20,
+        fontWeight: 'bold',
         color: '#00000',
         textAlign: 'center'
     },
     headerSpacer: { width: 40 },
     weekNav: {
-        flexDirection: 'row', 
-        justifyContent: 'space-between', 
+        flexDirection: 'row',
+        justifyContent: 'space-between',
         alignItems: 'center',
-        backgroundColor: '#fff', 
-        borderRadius: 16, 
-        padding: 20, 
+        backgroundColor: '#fff',
+        borderRadius: 16,
+        padding: 20,
         marginHorizontal: 16,
         marginVertical: 16,
         elevation: 4,
@@ -214,27 +241,27 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         backgroundColor: '#f5f5f5'
     },
-    weekInfo: { 
-        alignItems: 'center' 
+    weekInfo: {
+        alignItems: 'center'
     },
-    weekText: { 
-        fontSize: 18, 
+    weekText: {
+        fontSize: 18,
         fontWeight: 'bold',
         color: '#1976d2'
     },
-    weekRange: { 
-        fontSize: 14, 
-        color: '#666', 
-        marginTop: 4 
+    weekRange: {
+        fontSize: 14,
+        color: '#666',
+        marginTop: 4
     },
     listContainer: {
         paddingHorizontal: 16,
         paddingBottom: 20
     },
-    card: { 
-        backgroundColor: '#fff', 
-        borderRadius: 16, 
-        padding: 20, 
+    card: {
+        backgroundColor: '#fff',
+        borderRadius: 16,
+        padding: 20,
         marginBottom: 16,
         elevation: 3,
         shadowColor: '#000',
@@ -242,41 +269,41 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.1,
         shadowRadius: 8,
     },
-    todayCard: { 
-        borderWidth: 2, 
+    todayCard: {
+        borderWidth: 2,
         borderColor: '#1976d2',
         elevation: 6,
         shadowColor: '#1976d2',
         shadowOpacity: 0.2
     },
-    header: { 
-        flexDirection: 'row', 
-        justifyContent: 'space-between', 
+    header: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 16 
+        marginBottom: 16
     },
-    dayInfo: { 
+    dayInfo: {
         flexDirection: 'row',
         alignItems: 'center'
     },
-    dayName: { 
-        fontSize: 18, 
+    dayName: {
+        fontSize: 18,
         fontWeight: 'bold',
         color: '#333',
         marginRight: 12
     },
-    date: { 
-        fontSize: 14, 
+    date: {
+        fontSize: 14,
         color: '#666',
         backgroundColor: '#f5f5f5',
         paddingHorizontal: 8,
         paddingVertical: 4,
         borderRadius: 8
     },
-    todayText: { 
-        color: '#1976d2' 
+    todayText: {
+        color: '#1976d2'
     },
-    todayDateText: { 
+    todayDateText: {
         color: '#1976d2',
         backgroundColor: '#e3f2fd'
     },
@@ -288,7 +315,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center'
     },
-    todayBadgeText: { 
+    todayBadgeText: {
         color: '#fff',
         fontSize: 12,
         fontWeight: 'bold',
@@ -314,30 +341,30 @@ const styles = StyleSheet.create({
     shiftInfo: {
         flex: 1
     },
-    shiftType: { 
-        fontSize: 16, 
+    shiftType: {
+        fontSize: 16,
         fontWeight: 'bold',
         color: '#333'
     },
-    shiftTime: { 
-        fontSize: 14, 
+    shiftTime: {
+        fontSize: 14,
         color: '#666',
         marginTop: 2
     },
     noShift: {
-        flexDirection: 'row', 
-        alignItems: 'center', 
+        flexDirection: 'row',
+        alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#f8f9fa', 
-        borderRadius: 12, 
+        backgroundColor: '#f8f9fa',
+        borderRadius: 12,
         padding: 20,
         borderWidth: 1,
         borderColor: '#e0e0e0',
         borderStyle: 'dashed'
     },
-    noShiftText: { 
-        fontSize: 16, 
-        color: '#B0BEC5', 
+    noShiftText: {
+        fontSize: 16,
+        color: '#B0BEC5',
         marginLeft: 12,
         fontStyle: 'italic'
     },

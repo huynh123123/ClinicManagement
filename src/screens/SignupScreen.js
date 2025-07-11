@@ -9,13 +9,22 @@ import {
   Alert,
 } from 'react-native';
 import api from '../services/api';
+import { Picker } from '@react-native-picker/picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { Platform } from 'react-native';
 
 const SignupScreen = ({ navigation }) => {
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date());
   const [formData, setFormData] = useState({
     FullName: '',
     Email: '',
     Password: '',
     Phone: '',
+    Gender: '',
+    DOB: '',
+    Address: '',
+    InsuranceNumber: '',
   });
 
   const validateForm = () => {
@@ -76,7 +85,7 @@ const SignupScreen = ({ navigation }) => {
           onChangeText={(text) =>
             setFormData({ ...formData, FullName: text })
           }
-          placeholder="Nguyễn Văn A"
+          placeholder="Họ và tên"
         />
       </View>
 
@@ -90,7 +99,7 @@ const SignupScreen = ({ navigation }) => {
           }
           keyboardType="email-address"
           autoCapitalize="none"
-          placeholder="email@example.com"
+          placeholder="Email"
         />
       </View>
 
@@ -103,7 +112,7 @@ const SignupScreen = ({ navigation }) => {
             setFormData({ ...formData, Password: text })
           }
           secureTextEntry={true}
-          placeholder="******"
+          placeholder="Mật khẩu"
         />
       </View>
 
@@ -116,7 +125,72 @@ const SignupScreen = ({ navigation }) => {
             setFormData({ ...formData, Phone: text })
           }
           keyboardType="phone-pad"
-          placeholder="0123456789"
+          placeholder="Số điện thoại"
+        />
+      </View>
+
+      <View style={styles.inputContainer}>
+        <Text style={styles.inputLabel}>Giới tính</Text>
+        <View style={styles.pickerContainer}>
+          <Picker
+            selectedValue={formData.Gender}
+            onValueChange={(itemValue) =>
+              setFormData({ ...formData, Gender: itemValue })
+            }
+          >
+            <Picker.Item label="Chọn giới tính" value="" />
+            <Picker.Item label="Nam" value="Nam" />
+            <Picker.Item label="Nữ" value="Nữ" />
+          </Picker>
+        </View>
+      </View>
+
+      <View style={styles.inputContainer}>
+        <Text style={styles.inputLabel}>Ngày sinh</Text>
+        <TouchableOpacity
+          onPress={() => setShowDatePicker(true)}
+          style={styles.input}
+        >
+          <Text>{formData.DOB || 'Chọn ngày sinh'}</Text>
+        </TouchableOpacity>
+
+        {showDatePicker && (
+          <DateTimePicker
+            value={selectedDate}
+            mode="date"
+            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            onChange={(event, date) => {
+              setShowDatePicker(false);
+              if (date) {
+                const formattedDate = date.toISOString().split('T')[0]; // YYYY-MM-DD
+                setSelectedDate(date);
+                setFormData({ ...formData, DOB: formattedDate });
+              }
+            }}
+            maximumDate={new Date()}
+          />
+        )}
+      </View>
+
+      <View style={styles.inputContainer}>
+        <Text style={styles.inputLabel}>Địa chỉ</Text>
+        <TextInput
+          style={styles.input}
+          value={formData.Address}
+          onChangeText={(text) => setFormData({ ...formData, Address: text })}
+          placeholder="Địa chỉ"
+        />
+      </View>
+
+      <View style={styles.inputContainer}>
+        <Text style={styles.inputLabel}>Số BHYT (nếu có)</Text>
+        <TextInput
+          style={styles.input}
+          value={formData.InsuranceNumber}
+          onChangeText={(text) =>
+            setFormData({ ...formData, InsuranceNumber: text })
+          }
+          placeholder="Số BHYT"
         />
       </View>
 
@@ -186,6 +260,12 @@ const styles = StyleSheet.create({
   loginLink: {
     color: '#4285F4',
     fontWeight: 'bold',
+  },
+  pickerContainer: {
+  borderWidth: 1,
+  borderColor: '#ddd',
+  borderRadius: 5,
+  overflow: 'hidden',
   },
 });
 

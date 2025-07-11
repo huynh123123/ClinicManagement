@@ -35,7 +35,6 @@ const AppointmentList = () => {
       <Text style={styles.specialty}>🏥 {item.specialty}</Text>
       <Text style={styles.date}>📅 {new Date(item.date).toLocaleDateString('vi-VN')}</Text>
       <Text style={styles.reason}>📌 Lý do: {item.reason}</Text>
-      <Text style={styles.bookingFor}>👤 Đặt cho: {item.bookingFor}</Text>
     </View>
   );
 
@@ -141,9 +140,6 @@ const styles = StyleSheet.create({
   reason: {
     fontStyle: 'italic',
     marginBottom: 4,
-  },
-  bookingFor: {
-    color: '#333',
   },
   centered: {
     flex: 1,

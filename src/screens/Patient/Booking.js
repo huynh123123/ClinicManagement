@@ -23,7 +23,6 @@ const Booking = ({ route, navigation }) => {
   const [availableSlots, setAvailableSlots] = useState([]);
   const [selectedScheduleId, setSelectedScheduleId] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [bookingFor, setBookingFor] = useState('');
   const [reason, setReason] = useState('');
 
   const { user, token } = useContext(AuthContext);
@@ -53,7 +52,7 @@ const Booking = ({ route, navigation }) => {
   };
 
   const confirmBooking = async () => {
-    if (!selectedScheduleId || !bookingFor || !reason) {
+    if (!selectedScheduleId || !reason) {
       return Alert.alert('Lỗi', 'Vui lòng nhập đầy đủ thông tin');
     }
 
@@ -63,7 +62,6 @@ const Booking = ({ route, navigation }) => {
       const appointmentData = {
         PatientId: user.id,
         scheduleId: selectedScheduleId,
-        bookingFor: bookingFor,
         reason: reason,
       };
 
@@ -96,7 +94,7 @@ const Booking = ({ route, navigation }) => {
         {specialty && (
           <View style={styles.infoContainer}>
             <Text style={styles.label}>Chuyên khoa:</Text>
-            <Text style={styles.value}>{specialty.Name}</Text>
+            <Text style={styles.value}>{doctor.SpecialtyName}</Text>
           </View>
         )}
 
@@ -130,12 +128,6 @@ const Booking = ({ route, navigation }) => {
         {selectedTime && (
           <>
             <Text style={styles.sectionTitle}>Thông tin đặt lịch</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Người được khám"
-              value={bookingFor}
-              onChangeText={setBookingFor}
-            />
             <TextInput
               style={styles.input}
               placeholder="Lý do khám"

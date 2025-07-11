@@ -1,9 +1,10 @@
 import React, { useContext } from 'react';
-import { Text, View, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
+import { Text, View, StyleSheet, TouchableOpacity, FlatList, Alert } from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
 import { HeaderTitleContext } from '../../Layout/DoctorLayout';
+import { useAuth } from '../../../../context/AuthContext';
 
 const items = [
     { name: 'clipboard-check-multiple-outline', label: 'Yêu cầu', iconSet: 'MaterialCommunityIcons', route: 'Request', title: 'Yêu Cầu Khám' },
@@ -19,10 +20,33 @@ const ICON_COLOR = '#1976d2';
 
 const Main = ({ navigation }) => {
     const { setHeaderTitle } = useContext(HeaderTitleContext);
+    const { logout } = useAuth();
+
+    const handleLogout = () => {
+        Alert.alert(
+            'Xác nhận đăng xuất',
+            'Bạn có chắc chắn muốn đăng xuất?',
+            [
+                {
+                    text: 'Hủy',
+                    style: 'cancel',
+                },
+                {
+                    text: 'Đăng xuất',
+                    onPress: logout,
+                    style: 'destructive',
+                },
+            ]
+        );
+    };
 
     const handleNavigation = (item) => {
-        setHeaderTitle(item.title);
-        navigation.navigate(item.route);
+        if (item.route === 'Logout') {
+            handleLogout();
+        } else {
+            setHeaderTitle(item.title);
+            navigation.navigate(item.route);
+        }
     };
 
     const renderItem = ({ item }) => (

@@ -3,9 +3,8 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert } from 'react
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { HeaderTitleContext } from '../../Layout/DoctorLayout';
 import { fetchAppointmentsByDoctorIdAndStatus } from '../../../../Api/Doctor/AppointmentApi';
-import { finishAppointmentService } from '../../../../services/Doctor/AppointmentService';
 import Record from './Record';
-import { useAuth } from '../../../../context/AuthContext';
+import DiaForm from './DiaForm';
 
 const TABS = [
     { key: 'Đã xác nhận', label: 'Đã xác nhận' },
@@ -14,45 +13,21 @@ const TABS = [
 ];
 
 const Appointment = ({ navigation }) => {
-    const { user } = useAuth();
     const { setHeaderTitle } = useContext(HeaderTitleContext);
     const [selectedTab, setSelectedTab] = useState(TABS[0].key);
     const [modalVisible, setModalVisible] = useState(false);
+    const [diagModalVisible, setDiagModalVisible] = useState(false);
+    const [patientId, setPatientId] = useState(null);
     const [appointmentId, setAppointmentId] = useState(null);
     const [_data, set_Data] = useState([]);
 
     const fetchData = async (status) => {
         try {
-            const response = await fetchAppointmentsByDoctorIdAndStatus(user.id, status);
+            const response = await fetchAppointmentsByDoctorIdAndStatus(2, status);
             set_Data(response);
         } catch (error) {
             console.error(error);
         }
-    };
-
-    const handleFinishAppointment = async (appointmentId) => {
-        const finish = async () => {
-            if (await finishAppointmentService(appointmentId)) {
-                fetchData(selectedTab);
-            }
-        };
-
-        Alert.alert(
-            'Xác nhận',
-            'Bạn có chắc muốn đánh dấu lịch hẹn này là đã hoàn thành?',
-            [
-                {
-                    text: 'Hủy',
-                    style: 'cancel',
-                },
-                {
-                    text: 'Đồng ý',
-                    onPress: finish,
-                    style: 'destructive',
-                },
-            ],
-            { cancelable: true }
-        );
     };
 
     useEffect(() => {
@@ -68,6 +43,12 @@ const Appointment = ({ navigation }) => {
         setAppointmentId(appointmentId);
         setModalVisible(true);
     };
+
+    const handleDiagModal = (patientId, appointmentId) => {
+        setDiagModalVisible(true);
+        setAppointmentId(appointmentId);
+        setPatientId(patientId);
+    }
 
     const renderItem = ({ item, index }) => (
         <View style={styles.cardRow}>
@@ -101,9 +82,9 @@ const Appointment = ({ navigation }) => {
                             <Text style={[styles.infoText, { color: '#ffb300' }]}>{item.shift}</Text>
                         </View>
                         {selectedTab === 'Đã xác nhận' ? (
-                            <TouchableOpacity style={styles.completedBadge} onPress={() => handleFinishAppointment(item.id)}>
+                            <TouchableOpacity style={styles.completedBadge} onPress={() => handleDiagModal(item.patientId, item.id)}>
                                 <MaterialIcons name="check-circle" size={18} color="#43a047" />
-                                <Text style={styles.completedText}>Hoàn thành</Text>
+                                <Text style={styles.completedText}>Chuẩn đoán</Text>
                             </TouchableOpacity>
                         ) : selectedTab === 'Hoàn tất' ? (
                             <TouchableOpacity style={styles.completedBadge} onPress={() => handleRecordModal(item.id)}>
@@ -172,6 +153,13 @@ const Appointment = ({ navigation }) => {
                         appointmentId={appointmentId}
                         modalVisible={modalVisible}
                         setModalVisible={setModalVisible}
+                    />
+                    <DiaForm
+                        modalVisible={diagModalVisible}
+                        setModalVisible={setDiagModalVisible}
+                        patientId={patientId}
+                        appointmentId={appointmentId}
+                        setSelectedTab={setSelectedTab}
                     />
                 </>
             )}

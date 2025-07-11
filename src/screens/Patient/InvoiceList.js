@@ -12,7 +12,7 @@ const InvoiceList = () => {
     const fetchInvoices = async () => {
       try {
         const result = await getPatientInvoices(user.id);
-        setInvoices(result.data); // Nếu response là { data: [...] }
+        setInvoices(result.data);
       } catch (error) {
         Alert.alert('Lỗi', 'Không thể tải danh sách hóa đơn');
       } finally {
@@ -27,14 +27,14 @@ const InvoiceList = () => {
     <View style={styles.invoiceCard}>
       <View style={styles.invoiceHeader}>
         <Text style={styles.invoiceCode}>HD{item.InvoiceID.toString().padStart(4, '0')}</Text>
-        <Text
+        {/* <Text
           style={[
             styles.invoiceStatus,
             item.Status === 'Đã thanh toán' ? styles.paidStatus : styles.unpaidStatus,
           ]}
         >
           {item.Status}
-        </Text>
+        </Text> */}
       </View>
       <Text style={styles.invoiceDate}>
         Ngày: {new Date(item.CreatedAt).toLocaleDateString()}
