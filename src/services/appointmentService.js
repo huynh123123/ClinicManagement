@@ -3,10 +3,10 @@ import api from './api';
 
 // Lấy lịch hẹn của bệnh nhân
 export const getPatientAppointments = async (token) => {
-  const response = await api.get('/appointments/my-appointments', {
+  const response = await api.get('/appoint/my-appointments', {
     headers: { Authorization: `Bearer ${token}` }
   });
-  return response.data;
+  return response;
 };
 
 // Hủy lịch hẹn
@@ -19,7 +19,7 @@ export const cancelAppointment = async (appointmentId, token) => {
 
 // Đặt lịch hẹn mới
 export const bookAppointment = async (appointmentData, token) => {
-  const response = await api.post('/appointments', appointmentData, {
+  const response = await api.post('/appoint/appointments', appointmentData, {
     headers: { Authorization: `Bearer ${token}` }
   });
   return response.data;
@@ -28,7 +28,7 @@ export const bookAppointment = async (appointmentData, token) => {
 // Lấy lịch khám còn trống theo bác sĩ và ngày
 export const getAvailableSchedules = async (doctorId, date, token) => {
   const response = await api.get(
-    `/appointments/doctors/${doctorId}/available-schedules`,
+    `/appoint/doctors/${doctorId}/available-schedules`,
     {
       headers: { Authorization: `Bearer ${token}` },
       params: { date }

@@ -29,9 +29,6 @@ const fetchRecords = async () => {
 
   try {
     const records = await getPatientRecords(user.id);
-
-    console.log('📄 Hồ sơ bệnh án:', records);
-
     setRecords(Array.isArray(records) ? records : []);
   } catch (error) {
     console.error('❌ Error fetching medical records:', error);

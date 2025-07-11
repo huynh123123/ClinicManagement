@@ -20,8 +20,10 @@ const MedicalRecordDetailScreen = ({ route }) => {
     const fetchDetail = async () => {
       try {
         const res = await getRecordDetail(recordId);
-        setRecord(res.data);
+        console.log('📄 Hồ sơ:', res); // res chính là data
+        setRecord(res); // ✅
       } catch (err) {
+        console.error('Lỗi khi tải chi tiết hồ sơ:', err);
         Alert.alert('Lỗi', 'Không thể tải chi tiết hồ sơ');
       } finally {
         setLoading(false);

@@ -4,13 +4,8 @@ import api from './api';
  * Lấy danh sách hồ sơ bệnh án của bệnh nhân
  */
 export const getPatientRecords = async (patientId) => {
-  try {
     const response = await api.get(`/medical/patients/${patientId}/records`);
-    return response.data;
-  } catch (error) {
-    console.error('Lỗi khi gọi API getPatientRecords:', error);
-    throw error;
-  }
+    return response;
 };
 
 /**
@@ -19,7 +14,7 @@ export const getPatientRecords = async (patientId) => {
 export const getRecordDetail = async (recordId) => {
 
     const response = await api.get(`/medical/records/${recordId}`);
-    return response.data; // Trả thẳng object record
+    return response; // Trả thẳng object record
 };
 
 /**

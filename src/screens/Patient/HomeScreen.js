@@ -60,12 +60,6 @@ const HomeScreen = () => {
         <Text style={styles.buttonText}>📅 Xem lịch hẹn của tôi</Text>
       </TouchableOpacity>
 
-      <TextInput
-        placeholder="🔍 Tìm kiếm chuyên khoa hoặc bác sĩ..."
-        style={styles.searchInput}
-        editable={false}
-      />
-
       <Text style={styles.sectionTitle}>Chuyên khoa nổi bật</Text>
       <FlatList
         data={specialties}

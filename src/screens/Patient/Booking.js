@@ -62,9 +62,9 @@ const Booking = ({ route, navigation }) => {
 
       const appointmentData = {
         PatientId: user.id,
-        ScheduleId: selectedScheduleId,
-        BookingFor: bookingFor,
-        Reason: reason,
+        scheduleId: selectedScheduleId,
+        bookingFor: bookingFor,
+        reason: reason,
       };
 
       console.log('📤 Dữ liệu đặt lịch gửi lên:', appointmentData);

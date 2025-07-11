@@ -7,7 +7,7 @@ export const getDoctorsByDepartment = async (departmentId) => {
 
 export const getFeaturedDoctors = async () => {
   const res = await api.get('/doctors/featured');
-  return res.data;
+  return res;
 };
 
 export const getDoctorDetail = async (doctorId) => {
