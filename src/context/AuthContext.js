@@ -32,11 +32,10 @@ export const AuthProvider = ({ children }) => {
   const login = async (fullname, password) => {
     try {
       const response = await api.post('/auth/login', { fullname, password });
-      
+      console.log(response);
       // Lưu token và user data vào AsyncStorage
       await AsyncStorage.setItem('userToken', response.token);
       await AsyncStorage.setItem('userData', JSON.stringify(response.user));
-      
       setUserToken(response.token);
       setUser(response.user);
       return { success: true };

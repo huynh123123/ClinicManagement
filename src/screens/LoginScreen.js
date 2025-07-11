@@ -30,6 +30,7 @@ const LoginScreen = ({ navigation }) => {
       if (!result.success) {
         Alert.alert('Lỗi đăng nhập', result.error || 'Đăng nhập thất bại');
       }
+      
     } catch (error) {
       Alert.alert('Lỗi', 'Có lỗi xảy ra khi đăng nhập');
     } finally {
